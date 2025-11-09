@@ -39,6 +39,8 @@ function create() {
   cursors = this.input.keyboard.createCursorKeys();
   wKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.W);
   sKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.S);
+    aKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.A);
+  dKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.D);
 
   // Add overlap detection
   this.physics.add.overlap(player, target, hitTarget, null, this);
@@ -56,6 +58,9 @@ function update() {
   // Move up/down only
   if (cursors.up.isDown || wKey.isDown) player.setVelocityY(-200);
   if (cursors.down.isDown || sKey.isDown) player.setVelocityY(200);
+
+    if (cursors.left.isDown || aKey.isDown) player.setVelocityX(-200);
+  if (cursors.right.isDown || dKey.isDown) player.setVelocityX(200);
 }
 
 function hitTarget(player, target) {
