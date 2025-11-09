@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Phaser Collision + Score (8-Way Movement)</title>
+  <title>Phaser Collision + Score (No Gravity)</title>
   <script src="https://cdn.jsdelivr.net/npm/phaser@3.80.0/dist/phaser.js"></script>
 </head>
 <body>
@@ -21,8 +21,8 @@ const config = {
 
 const game = new Phaser.Game(config);
 
-let player, target, cursors, keys;
-let score = 0, scoreText;
+let player, target, cursors, wKey, sKey;
+let score = 0, scoreText, infoText;
 
 function preload() {
   this.load.image('player', 'https://labs.phaser.io/assets/sprites/pangball.png');
@@ -30,20 +30,18 @@ function preload() {
 }
 
 function create() {
-  // Player & Target
+  // Player (moves up/down)
   player = this.physics.add.sprite(200, 300, 'player').setCollideWorldBounds(true);
+
+  // Target (static, but we’ll reposition it and refreshBody)
   target = this.physics.add.staticSprite(600, 300, 'target');
 
-  // Input keys
+  // Controls
   cursors = this.input.keyboard.createCursorKeys();
-  keys = this.input.keyboard.addKeys({
-    W: Phaser.Input.Keyboard.KeyCodes.W,
-    A: Phaser.Input.Keyboard.KeyCodes.A,
-    S: Phaser.Input.Keyboard.KeyCodes.S,
-    D: Phaser.Input.Keyboard.KeyCodes.D
-  });
+  wKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.W);
+  sKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.S);
 
-  // Overlap detection
+  // Overlap detection → increments score + relocates target
   this.physics.add.overlap(player, target, onHit, null, this);
 
   // UI
@@ -53,7 +51,7 @@ function create() {
     color: '#003a2b'
   });
 
-  this.add.text(16, 48, 'Move with Arrow Keys or W/A/S/D (diagonal supported)', {
+  infoText = this.add.text(16, 48, 'Move with ↑/↓ or W/S. Touch the red target!', {
     fontFamily: 'Arial, Helvetica, sans-serif',
     fontSize: '16px',
     color: '#003a2b'
@@ -61,14 +59,27 @@ function create() {
 }
 
 function update() {
-  const speed = 240;
-  let vx = 0, vy = 0;
+  player.setVelocity(0);
+  if (cursors.up.isDown || wKey.isDown)   player.setVelocityY(-220);
+  if (cursors.down.isDown || sKey.isDown) player.setVelocityY(220);
+}
 
-  // Combine directions (for diagonals)
-  if (cursors.left.isDown || keys.A.isDown)  vx -= 1;
-  if (cursors.right.isDown || keys.D.isDown) vx += 1;
-  if (cursors.up.isDown || keys.W.isDown)    vy -= 1;
-  if (cursors.down.isDown || keys.S.isDown)  vy += 1;
+function onHit(player, target) {
+  // Increment score
+  score += 1;
+  scoreText.setText('Score: ' + score);
 
-  // Normalize diagonal speed so it stays constant in all directions
-  if
+  // Flash the target
+  target.setTint(0xff0000);
+  this.time.delayedCall(120, () => target.clearTint());
+
+  // Reposition target to a random spot (and refresh static body)
+  const pad = 60; // keep away from edges
+  const nx = Phaser.Math.Between(pad, config.width - pad);
+  const ny = Phaser.Math.Between(pad, config.height - pad);
+  target.setPosition(nx, ny);
+  target.refreshBody(); // IMPORTANT for static bodies so collider updates
+}
+</script>
+</body>
+</html>
