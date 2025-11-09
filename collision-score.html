@@ -66,8 +66,8 @@ function update() {
   player.setVelocity(0);
   if (cursors.up.isDown || wKey.isDown)   player.setVelocityY(-220);
   if (cursors.down.isDown || sKey.isDown) player.setVelocityY(220);
-    if (cursors.left.isDown || aKey.isDown)   player.setVelocityY(-220);
-  if (cursors.right.isDown || dKey.isDown) player.setVelocityY(220);
+    if (cursors.left.isDown || aKey.isDown)   player.setVelocityX(-220);
+  if (cursors.right.isDown || dKey.isDown) player.setVelocityX(220);
 }
 
 function onHit(player, target) {
