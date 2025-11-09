@@ -1,10 +1,9 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Phaser Movement Demos</title>
+  <title>Phaser Demo Index</title>
   <style>
     body {
       font-family: 'Segoe UI', Arial, sans-serif;
@@ -17,14 +16,23 @@
       color: #006e51;
       margin-bottom: 1em;
     }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1.2em;
+      max-width: 900px;
+      margin: 0 auto;
+    }
     .card {
       background: #fffef4;
       border: 2px solid #e6d971;
       border-radius: 16px;
       padding: 20px;
-      max-width: 360px;
-      margin: 1em auto;
       box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    }
+    h2 {
+      color: #006e51;
+      font-size: 1.2em;
     }
     a {
       display: inline-block;
@@ -37,26 +45,52 @@
       transition: background 0.2s ease;
     }
     a:hover { background: #009a70; }
+    footer {
+      margin-top: 3em;
+      font-size: 0.9em;
+      color: #666;
+    }
   </style>
 </head>
 <body>
-  <h1>🎮 Phaser Movement Demos</h1>
-  <p>Select which example you want to play:</p>
+  <h1>🎮 Phaser Demo Collection</h1>
+  <p>Select a demo to explore different movement and collision types.</p>
 
-  <div class="card">
-    <h2>No Gravity – Up/Down Keys</h2>
-    <p>Move the sprite up and down using ↑ ↓ or W / S.</p>
-    <a href="nogravity.html">Open No-Gravity Demo</a>
+  <div class="grid">
+
+    <div class="card">
+      <h2>No Gravity – Up/Down Keys</h2>
+      <p>Move the sprite up and down using ↑ ↓ or W / S.</p>
+      <a href="nogravity.html">Open No-Gravity Demo</a>
+    </div>
+
+    <div class="card">
+      <h2>Gravity – Jump Only</h2>
+      <p>Press ↑ or W to jump. Sprite falls naturally.</p>
+      <a href="gravity.html">Open Gravity Demo</a>
+    </div>
+
+    <div class="card">
+      <h2>Collision (Overlap Detection)</h2>
+      <p>Move up/down to trigger a collision event with a target.</p>
+      <a href="collision.html">Open Collision Demo</a>
+    </div>
+
+    <div class="card">
+      <h2>Solid Collision (No Gravity)</h2>
+      <p>Try moving into the green walls – solid barriers stop the sprite.</p>
+      <a href="solid-collision.html">Open Solid No-Gravity Demo</a>
+    </div>
+
+    <div class="card">
+      <h2>Solid Collision + Gravity</h2>
+      <p>Jump and move left/right. Platforms and walls are solid.</p>
+      <a href="solid-gravity.html">Open Solid + Gravity Demo</a>
+    </div>
+
   </div>
 
-  <div class="card">
-    <h2>With Gravity – Jump Only</h2>
-    <p>Press ↑ or W to jump. Sprite falls with gravity.</p>
-    <a href="gravity.html">Open Gravity Demo</a>
-  </div>
-
-  <footer style="margin-top:3em;font-size:0.9em;color:#666;">
-    © 2025 RHSC Computing – Phaser examples
-  </footer>
+  <footer>© 2025 RHSC Computing – Phaser Examples</footer>
 </body>
 </html>
+
