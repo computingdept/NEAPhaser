@@ -114,4 +114,27 @@ function update () {
   const speed = 260;
   player.setVelocityX(0);
 
-  if (cursors.left.isDown || ke
+  if (cursors.left.isDown || keys.A.isDown)  player.setVelocityX(-speed);
+  if (cursors.right.isDown || keys.D.isDown) player.setVelocityX(speed);
+
+  if ((cursors.up.isDown || keys.W.isDown) && player.body.touching.down) {
+    player.setVelocityY(-520);
+  }
+}
+
+function collectStar (player, star) {
+  star.disableBody(true, true);
+  score += 10;
+  scoreText.setText('Score: ' + score);
+
+  // Respawn stars when all collected
+  if (stars.countActive(true) === 0) {
+    stars.children.iterate(s => {
+      s.enableBody(true, s.x + Phaser.Math.Between(-80, 80), 0, true, true);
+      s.setBounceY(Phaser.Math.FloatBetween(0.3, 0.6));
+    });
+  }
+}
+</script>
+</body>
+</html>
