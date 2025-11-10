@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Phaser Demo Index</title>
+  <title>Phaser Demo Collection – RHSC Computing</title>
   <style>
     body {
       font-family: 'Segoe UI', Arial, sans-serif;
@@ -12,24 +12,14 @@
       text-align: center;
       padding: 60px 20px;
     }
-    h1 {
-      color: #006e51;
-      margin-bottom: 0.5em;
-    }
-    .guide-link {
-      font-size: 1.1em;
-      margin-bottom: 1.5em;
-    }
-    .guide-link a {
-      color: #006e51;
-      text-decoration: underline;
-      font-weight: bold;
-    }
+    h1 { color: #006e51; margin-bottom: 0.5em; }
+    .guide-link { font-size: 1.1em; margin-bottom: 1.5em; }
+    .guide-link a { color: #006e51; text-decoration: underline; font-weight: bold; }
     .grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
       gap: 1.2em;
-      max-width: 900px;
+      max-width: 960px;
       margin: 0 auto;
     }
     .card {
@@ -70,10 +60,9 @@
   </style>
 </head>
 <body>
-  <h1>🎮 Phaser Demo Collection</h1>
+  <h1>🎮 RHSC Computing – Phaser Demo Collection</h1>
   <p class="guide-link">
-    🧭 New to Phaser? Visit the official learning portal: 
-    <a href="https://phaser.io/learn" target="_blank">https://phaser.io/learn</a>
+    🧭 Learn Phaser: <a href="https://phaser.io/learn" target="_blank">https://phaser.io/learn</a>
   </p>
 
   <div class="grid">
@@ -81,9 +70,9 @@
       <h2>No Gravity – Up/Down Keys</h2>
       <p>Move the sprite up and down using ↑ ↓ or W / S.</p>
       <ul>
-        <li>🧠 Add left/right movement keys.</li>
-        <li>🎨 Change the sprite to something new (e.g., a rocket).</li>
-        <li>⚙️ Add a speed variable and experiment with faster/slower motion.</li>
+        <li>Add left/right movement.</li>
+        <li>Change the sprite to a rocket.</li>
+        <li>Try speeding up and slowing down movement.</li>
       </ul>
       <a class="button" href="nogravity.html">Open No-Gravity Demo</a>
     </div>
@@ -92,42 +81,42 @@
       <h2>Gravity – Jump Only</h2>
       <p>Press ↑, W, or Space to jump. Sprite falls naturally.</p>
       <ul>
-        <li>🪂 Make the sprite double-jump before landing.</li>
-        <li>🎯 Add a floating target to jump into.</li>
-        <li>💬 Display “Jump!” text each time you press the key.</li>
+        <li>Add a double-jump ability.</li>
+        <li>Spawn a floating target to hit.</li>
+        <li>Display “Jump!” text when pressed.</li>
       </ul>
       <a class="button" href="gravity.html">Open Gravity Demo</a>
     </div>
 
     <div class="card">
       <h2>Collision (Overlap Detection)</h2>
-      <p>Move to trigger a collision event with a target.</p>
+      <p>Move in 4 directions to hit the target and trigger collision.</p>
       <ul>
-        <li>💥 Add sound when a collision happens.</li>
-        <li>🎨 Make the target move randomly every few seconds.</li>
-        <li>🔄 Keep a collision counter at the top of the screen.</li>
+        <li>Add a sound when collision happens.</li>
+        <li>Make the target move randomly.</li>
+        <li>Track how many hits you make.</li>
       </ul>
       <a class="button" href="collision.html">Open Collision Demo</a>
     </div>
 
     <div class="card">
       <h2>Collision + Score</h2>
-      <p>Each time you hit the target, your score increases.</p>
+      <p>Score increases each time you touch the red target.</p>
       <ul>
-        <li>⏱️ Add a 30-second timer to race for points.</li>
-        <li>💫 Make the target shrink or grow each time it’s hit.</li>
-        <li>📊 Save and display a “high score” between plays.</li>
+        <li>Add a 30-second timer.</li>
+        <li>Make the target change size.</li>
+        <li>Save and show a high-score.</li>
       </ul>
-      <a class="button" href="collision-score.html">Open Collision + Score Demo</a>
+      <a class="button" href="collision-score.html">Open Collision + Score</a>
     </div>
 
     <div class="card">
       <h2>Solid Collision (No Gravity)</h2>
-      <p>Try moving into the green walls – solid barriers stop the sprite.</p>
+      <p>Walls stop movement. Move around the obstacles.</p>
       <ul>
-        <li>🚧 Add more walls to create a maze layout.</li>
-        <li>🔑 Place a target that must be reached without touching walls.</li>
-        <li>🎨 Change wall colour when the player collides.</li>
+        <li>Build a small maze layout.</li>
+        <li>Change wall colours on collision.</li>
+        <li>Add a goal area to reach.</li>
       </ul>
       <a class="button" href="solid-collision.html">Open Solid No-Gravity Demo</a>
     </div>
@@ -136,39 +125,72 @@
       <h2>Solid Collision + Gravity</h2>
       <p>Jump and move left/right. Platforms and walls are solid.</p>
       <ul>
-        <li>🌈 Add extra floating platforms or obstacles.</li>
-        <li>🎯 Place a coin or star to collect on the top platform.</li>
-        <li>🪜 Add a moving platform or elevator.</li>
+        <li>Add more floating platforms.</li>
+        <li>Place coins or stars to collect.</li>
+        <li>Add a moving elevator platform.</li>
       </ul>
-      <a class="button" href="solid-gravity.html">Open Solid + Gravity Demo</a>
+      <a class="button" href="solid-gravity.html">Open Solid + Gravity</a>
     </div>
 
     <div class="card">
       <h2>Side-Scroller</h2>
-      <p>Run, jump, and collect stars across a scrolling world.</p>
+      <p>Run, jump, and collect stars in a scrolling world.</p>
       <ul>
-        <li>🚀 Increase world width and add new platform layouts.</li>
-        <li>🧍 Add an enemy that moves back and forth.</li>
-        <li>⭐ Make stars worth different points (gold, silver, bronze).</li>
+        <li>Extend the map with new platforms.</li>
+        <li>Add a moving enemy to dodge.</li>
+        <li>Give stars different point values.</li>
       </ul>
-      <a class="button" href="sidescroller.html">Open Side-Scroller Demo</a>
+      <a class="button" href="sidescroller.html">Open Side-Scroller</a>
     </div>
 
     <div class="card">
       <h2>Realistic Character Movement</h2>
       <p>Acceleration, drag, coyote time, jump buffering and animations.</p>
       <ul>
-        <li>🧍‍♂️ Add a collectible item that gives a speed boost.</li>
-        <li>🎵 Play a jump sound when leaving the ground.</li>
-        <li>💡 Create a simple “goal” platform that ends the level.</li>
+        <li>Add a collectible speed-boost power-up.</li>
+        <li>Play a sound on jump.</li>
+        <li>Build a “goal” platform to finish the level.</li>
       </ul>
-      <a class="button" href="character-movement.html">Open Character Movement Demo</a>
+      <a class="button" href="character-movement.html">Open Character Movement</a>
+    </div>
+
+    <div class="card">
+      <h2>Mouse Follow</h2>
+      <p>Ball follows the mouse pointer. Click the shelf to add items.</p>
+      <ul>
+        <li>Change the cursor speed.</li>
+        <li>Limit how many items can be added.</li>
+        <li>Make follower pick up items before placing.</li>
+      </ul>
+      <a class="button" href="mouse-follow-shelf.html">Open Mouse Follow</a>
+    </div>
+
+    <div class="card">
+      <h2>Mouse Follow + Shelf List</h2>
+      <p>Items appear as tags on the shelf in rows.</p>
+      <ul>
+        <li>Change item colours or fonts.</li>
+        <li>Add a “Clear shelf” button on-screen.</li>
+        <li>Limit number of rows allowed.</li>
+      </ul>
+      <a class="button" href="mouse-follow-shelf-list.html">Open Shelf List Demo</a>
+    </div>
+
+    <div class="card">
+      <h2>Mouse Follow + Placed Items</h2>
+      <p>Items appear exactly where you click on the shelf.</p>
+      <ul>
+        <li>Stack items using small icons (apples, books).</li>
+        <li>Show a tooltip when hovering over an item.</li>
+        <li>Add drag-to-rearrange behaviour.</li>
+      </ul>
+      <a class="button" href="mouse-follow-shelf-placed.html">Open Placed Items Demo</a>
     </div>
   </div>
 
   <footer>
     © 2025 RHSC Computing – Phaser Examples<br/>
-    📘 Learn more at <a href="https://phaser.io/learn" target="_blank">https://phaser.io/learn</a>
+    Learn more: <a href="https://phaser.io/learn" target="_blank">phaser.io/learn</a>
   </footer>
 </body>
 </html>
