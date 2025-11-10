@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Phaser Matter – Swinging Door on Hinge</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <script src="https://cdn.jsdelivr.net/npm/phaser@3.80.0/dist/phaser.js"></script>
+</head>
+<body>
+<script>
+const config = {
+  type: Phaser.AUTO,
+  width: 900,
+  height: 560,
+  backgroundColor: '#87CEEB',
+  physics: {
+    default: 'matter',
+    matter: {
+      gravity: { y: 1 },   // gravity makes the door swing
+      debug: false
+    }
+  },
+  scene: { preload, create, update }
+};
+new Phaser.Game(config);
+
+let player, cursors, keys;
+
+function preload(){
+  this.load.image('ground', 'https://labs.phaser.io/assets/sprites/platform.png');
+  this.load.image('crate',  'https://labs.phaser.io/assets/sprites/crate.png');
+}
+
+function create(){
+  const M = this.matter;
+
+  // Ground & walls (static)
+  M.add.rectangle(450, 540, 900, 40, { isStatic: true }); // floor
+  M.add.rectangle(10, 280, 20, 560, { isStatic: true });  // left wall
+  M.add.rectangle(890, 280, 20, 560, { isStatic: true }); // right wall
+
+  // Player (a circle with some weight)
+  player = M.add.circle(140, 440, 22, {
+    restitution: 0.0,
+    friction: 0.12,
+    density: 0.002
+  });
+  // A visible sprite on top of the physics body (optional)
+  const pSprite = this.add.sprite(0,0,'crate').setTint(0xdef6ff).setScale(0.45);
+  M.add.gameObject(pSprite, player);
+
+  // --- DOOR ON A HINGE ---
+  // Door dimensions
+  const doorW = 160, doorH = 20;           // a flat plank (looks like a door/wall)
+  const hingeX = 520, hingeY = 420;        // hinge (world point)
+  // Create door body (dynamic so it can rotate)
+  const door = M.add.rectangle(hingeX + doorW/2 - 6, hingeY, doorW, doorH, {
+    chamfer: { radius: 6 },
+    restitution: 0,
+    friction: 0.3,
+    density: 0.002,
+    angle: 0 // starts horizontal; gravity will pull it down after impact
+  });
+
+  // Pin the door's LEFT EDGE to a world point to act as a hinge.
+  // pointB is the local offset on the door body (left edge, center).
+  M.add.worldConstraint(door, 0, 1, {
+    pointA: { x: hingeX, y: hingeY },
+    pointB: { x: -doorW/2 + 6, y: 0 } // local to the door
+  });
+
+  // A visible rectangle for the door
+  const doorGraphics = this.add.rectangle(0,0, doorW, doorH, 0x6b4f2a).setStrokeStyle(2,0x3c2a16);
+  M.add.gameObject(doorGraphics, door);
+
+  // Optional: a physical "stop" so the door doesn't swing through the floor
+  M.add.rectangle(hingeX + doorW - 10, hingeY + doorH/2 + 2, 12, 12, { isStatic: true });
+
+  // Small post to show hinge pivot
+  this.add.circle(hingeX, hingeY, 6, 0x222222);
+
+  // Basic keyboard control (left/right + jump impulse)
+  cursors = this.input.keyboard.createCursorKeys();
+  keys = this.input.keyboard.addKeys({
+    A: Phaser.Input.Keyboard.KeyCodes.A,
+    D: Phaser.Input.Keyboard.KeyCodes.D,
+    W: Phaser.Input.Keyboard.KeyCodes.W,
+    SPACE: Phaser.Input.Keyboard.KeyCodes.SPACE
+  });
+
+  // Give the player a tiny push if stuck touching the door, so it starts to swing
+  M.world.on('collisionstart', (evt) => {
+    evt.pairs.forEach(pair => {
+      const bodies = [pair.bodyA, pair.bodyB];
+      if (bodies.includes(door) && bodies.includes(player)) {
+        // Nudge door a little (or add angular velocity) when hit
+        M.body.setAngularVelocity(door, 0.12);
+      }
+    });
+  });
+
+  // Helpful text
+  this.add.text(18,18,
+    'Move: A/← and D/→   •   Jump: W/↑/Space\nHit the plank “door” near its free end — gravity + hinge will swing it open.',
+    { fontFamily: 'Arial, Helvetica, sans-serif', fontSize: '16px', color: '#003a2b' }
+  ).setScrollFactor(0);
+}
+
+function update(){
+  const speed = 0.008; // force magnitude (Matter uses forces, very small values)
+  const velCap = 6;
+
+  // Apply left/right force
+  if (cursors.left.isDown || keys.A.isDown) {
+    this.matter.body.applyForce(player, {x: player.position.x, y: player.position.y}, {x:-speed, y:0});
+  }
+  if (cursors.right.isDown || keys.D.isDown) {
+    this.matter.body.applyForce(player, {x: player.position.x, y: player.position.y}, {x:+speed, y:0});
+  }
+
+  // Simple jump (impulse) if roughly on the floor
+  const vy = player.velocity.y || 0;
+  if ((Phaser.Input.Keyboard.JustDown(cursors.up) || Phaser.Input.Keyboard.JustDown(keys.W) || Phaser.Input.Keyboard.JustDown(keys.SPACE))
+      && Math.abs(vy) < 0.01) {
+    this.matter.body.setVelocity(player, { x: player.velocity.x, y: -10 });
+  }
+
+  // Cap horizontal speed a bit (not required)
+  if (Math.abs(player.velocity.x) > velCap){
+    this.matter.body.setVelocity(player, { x: Phaser.Math.Clamp(player.velocity.x, -velCap, velCap), y: player.velocity.y });
+  }
+}
+</script>
+</body>
+</html>
