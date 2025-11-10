@@ -2,138 +2,77 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Phaser – Top-Down Door You Can Push Open (WASD)</title>
+  <title>Phaser – Robot opens a hole in the wall</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <script src="https://cdn.jsdelivr.net/npm/phaser@3.80.0/dist/phaser.js"></script>
 </head>
 <body>
 <script>
-const VIEW_W = 900, VIEW_H = 560;
-const WORLD_W = 1600, WORLD_H = 900;
-
 const config = {
   type: Phaser.AUTO,
-  width: VIEW_W,
-  height: VIEW_H,
-  backgroundColor: '#eef6ff',
+  width: 900,
+  height: 560,
+  backgroundColor: '#f6fff5',
   physics: {
-    default: 'matter',
-    matter: {
-      gravity: { x: 0, y: 0 }, // top-down, no gravity
-      debug: false
-    }
+    default: 'arcade',
+    arcade: { gravity: { y: 0 }, debug: false }
   },
   scene: { preload, create, update }
 };
-
 new Phaser.Game(config);
 
-let player, keys, door, pushingDoor = false;
-let walls = [];
-// Angle limits (radians): door starts CLOSED (blocking the gap) and can rotate ~90° open
-const ANGLE_CLOSED = 0;                          // vertical (blocking)
-const ANGLE_OPEN   = Phaser.Math.DegToRad(90);   // swings clockwise along the wall
-const PUSH_TORQUE  = 0.012;                      // assist while pushing
-const RETURN_TORQUE= 0.008;                      // auto-close when not pushed
-const MAX_ANG_VEL  = 1.0;
-const SPEED = 3.2;                               // player speed
+let player, cursors, keys;
+let wallLeft, wallRight, wallPlug, plugVisual, opened = false;
+let msg;
 
-// Doorway placement
-const doorGapX = 800;   // center of doorway (x)
-const doorGapY = 450;   // center of doorway (y)
-const doorGapW = 80;    // width of doorway
-const doorGapH = 120;   // height of doorway
+function preload() {
+  this.load.image('robot', 'https://labs.phaser.io/assets/sprites/robot.png');
+}
 
-function preload(){}
+function create() {
+  const cx = config.width / 2;
+  const wy = 280;              // wall center Y
+  const wallW = 760, wallH = 60;
+  const gapW  = 120;           // width of the hole that will appear
 
-function create(){
-  const M = this.matter;
-
-  // --- Camera + world bounds ---
-  this.cameras.main.setBounds(0, 0, WORLD_W, WORLD_H);
-  this.matter.world.setBounds(0, 0, WORLD_W, WORLD_H);
-
-  // --- Background + wall visuals ---
+  // --- Draw the wall (visuals) ---
   const g = this.add.graphics();
-  // floor tint
-  g.fillStyle(0xf6fff5, 1).fillRect(0, 0, WORLD_W, WORLD_H);
-
-  // long blue wall with a gap (doorway)
-  const wallY = doorGapY, wallH = 200, wallW = 900;
-  const wallLeftX  = doorGapX - wallW/2;
-  const wallTopY   = wallY - wallH/2;
-
-  // draw wall slab
   g.fillStyle(0x1f6ad1, 1);
-  g.fillRoundedRect(wallLeftX, wallTopY, wallW, wallH, 8);
-  // draw doorway cut-out (lighter)
-  g.fillStyle(0xf6fff5, 1);
-  g.fillRoundedRect(doorGapX - doorGapW/2, doorGapY - doorGapH/2, doorGapW, doorGapH, 6);
+  // left slab
+  g.fillRoundedRect(cx - wallW/2, wy - wallH/2, (wallW-gapW)/2, wallH, 8);
+  // right slab
+  g.fillRoundedRect(cx + gapW/2,  wy - wallH/2, (wallW-gapW)/2, wallH, 8);
+  // plug (initially filled – we’ll hide this later)
+  plugVisual = this.add.rectangle(cx, wy, gapW, wallH, 0x1f6ad1, 1).setStrokeStyle(0, 0);
 
-  // --- Physics wall as 3 static pieces (left, right, lintel) ---
-  // Left wall block
-  walls.push(M.add.rectangle(
-    doorGapX - (doorGapW/2) - (wallW/2 - doorGapW/2)/2,
-    wallY,
-    wallW/2 - doorGapW/2,
-    wallH,
-    { isStatic: true }
-  ));
-  // Right wall block
-  walls.push(M.add.rectangle(
-    doorGapX + (doorGapW/2) + (wallW/2 - doorGapW/2)/2,
-    wallY,
-    wallW/2 - doorGapW/2,
-    wallH,
-    { isStatic: true }
-  ));
-  // Lintel (top piece above the gap)
-  walls.push(M.add.rectangle(
-    doorGapX,
-    doorGapY - doorGapH/2 - 8,
-    doorGapW,
-    16,
-    { isStatic: true }
-  ));
+  // --- Physics wall pieces (static) ---
+  wallLeft  = this.physics.add.staticImage(cx - (gapW/2 + (wallW-gapW)/4), wy)
+               .setDisplaySize((wallW-gapW)/2, wallH).refreshBody();
+  wallRight = this.physics.add.staticImage(cx + (gapW/2 + (wallW-gapW)/4), wy)
+               .setDisplaySize((wallW-gapW)/2, wallH).refreshBody();
+  // The plug that blocks the gap initially
+  wallPlug  = this.physics.add.staticImage(cx, wy)
+               .setDisplaySize(gapW, wallH).refreshBody();
 
-  // --- The Door (brown), hinged on the left jamb, initially CLOSED (blocking the gap)
-  const doorW = 12, doorH = doorGapH - 10;
-  const hingeX = doorGapX - doorGapW/2; // left side of the doorway
-  const hingeY = doorGapY;
+  // --- Player (robot) ---
+  player = this.physics.add.image(120, wy + 140, 'robot').setScale(0.5);
+  player.setCollideWorldBounds(true);
+  player.body.setCircle(player.width * 0.25); // nicer collision
 
-  door = M.add.rectangle(hingeX + doorW/2, hingeY, doorW, doorH, {
-    friction: 0.7,
-    frictionStatic: 0.95,
-    frictionAir: 0.015,
-    density: 0.003,
-    angle: ANGLE_CLOSED
-  });
-  // Hinge pin (world constraint at left edge)
-  M.add.worldConstraint(door, 0, 1, {
-    pointA: { x: hingeX, y: hingeY },
-    pointB: { x: -doorW/2, y: 0 }
-  });
-  // Visual for door
-  const doorVis = this.add.rectangle(0, 0, doorW, doorH, 0x8b5a2b).setStrokeStyle(2, 0x4a3015);
-  M.add.gameObject(doorVis, door);
-  // Hinge dot
-  this.add.circle(hingeX, hingeY, 4, 0x222222);
+  // Collide with the fixed wall
+  this.physics.add.collider(player, wallLeft);
+  this.physics.add.collider(player, wallRight);
+  this.physics.add.collider(player, wallPlug);
 
-  // --- Player (green square), top-down movement, collides with walls/door
-  player = M.add.rectangle(doorGapX - 180, doorGapY + 40, 26, 26, {
-    friction: 0.2,
-    frictionAir: 0.02,
-    density: 0.002
-  });
-  player.ignoreGravity = true; // not needed in zero-g, but explicit
+  // Overlap zone in front of the plug: when touched, “open” the hole
+  const trigger = this.add.zone(cx, wy, gapW, wallH + 20);
+  this.physics.world.enable(trigger);
+  trigger.body.setAllowGravity(false);
+  trigger.body.setImmovable(true);
+  this.physics.add.overlap(player, trigger, () => openHole.call(this), null, this);
 
-  const pVis = this.add.rectangle(0, 0, 26, 26, 0x2a9d8f);
-  M.add.gameObject(pVis, player);
-
-  // Follow player
-  this.cameras.main.startFollow(pVis, true, 0.12, 0.12);
-
-  // Input
+  // Controls
+  cursors = this.input.keyboard.createCursorKeys();
   keys = this.input.keyboard.addKeys({
     W: Phaser.Input.Keyboard.KeyCodes.W,
     A: Phaser.Input.Keyboard.KeyCodes.A,
@@ -141,65 +80,32 @@ function create(){
     D: Phaser.Input.Keyboard.KeyCodes.D
   });
 
-  // Detect contact with the door (are we pushing?)
-  M.world.on('collisionstart', (evt) => {
-    evt.pairs.forEach(p => {
-      if ((p.bodyA === door && p.bodyB === player) || (p.bodyB === door && p.bodyA === player)) pushingDoor = true;
-    });
-  });
-  M.world.on('collisionactive', (evt) => {
-    evt.pairs.forEach(p => {
-      if ((p.bodyA === door && p.bodyB === player) || (p.bodyB === door && p.bodyA === player)) pushingDoor = true;
-    });
-  });
-  M.world.on('collisionend', (evt) => {
-    evt.pairs.forEach(p => {
-      if ((p.bodyA === door && p.bodyB === player) || (p.bodyB === door && p.bodyA === player)) pushingDoor = false;
-    });
-  });
-
-  // HUD
-  this.add.text(16, 16,
-    'Top-down WASD. Walk into the brown door in the blue wall to push it open.\nIt closes itself when you move away.',
+  // UI
+  msg = this.add.text(16, 16,
+    'WASD (or arrows) to move the robot.\nWalk up to the wall’s centre to open a hole.',
     { fontFamily: 'Arial, Helvetica, sans-serif', fontSize: '16px', color: '#003a2b' }
-  ).setScrollFactor(0);
+  );
 }
 
-function update(){
-  const M = this.matter;
+function update() {
+  const speed = 220;
+  player.setVelocity(0);
 
-  // --- Simple WASD: set velocity directly (no inertia feel) ---
-  let vx = 0, vy = 0;
-  if (keys.A.isDown) vx -= SPEED;
-  if (keys.D.isDown) vx += SPEED;
-  if (keys.W.isDown) vy -= SPEED;
-  if (keys.S.isDown) vy += SPEED;
-  M.body.setVelocity(player, { x: vx, y: vy });
+  if (keys.A.isDown || cursors.left.isDown)  player.setVelocityX(-speed);
+  if (keys.D.isDown || cursors.right.isDown) player.setVelocityX(speed);
+  if (keys.W.isDown || cursors.up.isDown)    player.setVelocityY(-speed);
+  if (keys.S.isDown || cursors.down.isDown)  player.setVelocityY(speed);
+}
 
-  // --- Door behaviour ---
-  // If we are touching the door and pressing into it from the left (D),
-  // give it angular velocity toward OPEN.
-  if (pushingDoor && keys.D.isDown) {
-    const next = (door.angularVelocity || 0) + PUSH_TORQUE;
-    M.body.setAngularVelocity(door, Math.min(next, MAX_ANG_VEL));
-  }
+function openHole() {
+  if (opened) return;
+  opened = true;
 
-  // Auto-close when not pushing and door is open a little
-  const ang = door.angle; // radians
-  if (!pushingDoor && ang > ANGLE_CLOSED + 0.01) {
-    const next = (door.angularVelocity || 0) - RETURN_TORQUE;
-    M.body.setAngularVelocity(door, Math.max(next, -MAX_ANG_VEL));
-  }
+  // Remove the blocking physics body and fade the plug visual out
+  wallPlug.disableBody(true, true);
+  this.tweens.add({ targets: plugVisual, alpha: 0, duration: 250 });
 
-  // Clamp between CLOSED and OPEN
-  if (ang < ANGLE_CLOSED) {
-    M.body.setAngle(door, ANGLE_CLOSED);
-    M.body.setAngularVelocity(door, 0);
-  }
-  if (ang > ANGLE_OPEN) {
-    M.body.setAngle(door, ANGLE_OPEN);
-    M.body.setAngularVelocity(door, 0);
-  }
+  msg.setText('The wall opens! Walk through the gap.');
 }
 </script>
 </body>
