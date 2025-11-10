@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Phaser Matter – Push-Open Door in Wall (WASD)</title>
+  <title>Phaser Matter – Simple WASD + Door in Blue Wall</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <script src="https://cdn.jsdelivr.net/npm/phaser@3.80.0/dist/phaser.js"></script>
 </head>
@@ -12,11 +12,11 @@ const config = {
   type: Phaser.AUTO,
   width: 900,
   height: 560,
-  backgroundColor: '#e7f6ee',
+  backgroundColor: '#eef9ff',
   physics: {
     default: 'matter',
     matter: {
-      gravity: { y: 1 },
+      gravity: { y: 1 },   // gravity for the DOOR (player ignores gravity)
       debug: false
     }
   },
@@ -24,86 +24,79 @@ const config = {
 };
 new Phaser.Game(config);
 
-let player, cursors, keys;
-let door, hingeX, hingeY;
-let pushingDoor = false;        // true while the player is physically touching the door
-const OPEN_DIR = +1;            // +1 = clockwise opening (to the right)
-const ANGLE_CLOSED = 0;         // radians, door vertical and closed
-const ANGLE_OPEN   = Phaser.Math.DegToRad(85);  // max open angle (~85°)
-const PUSH_TORQUE  = 0.012;     // how much we “assist” rotation while pushing
-const AIR_DAMP     = 0.015;     // door air resistance to slow it down (heavier feel)
+let player, keys, door;
+let pushingDoor = false;
 
-function preload(){
-  this.load.image('brick', 'https://labs.phaser.io/assets/sprites/platform.png');
-}
+const SPEED = 3.1;          // player pixels per frame
+const OPEN_DIR = +1;        // +1 = opens clockwise
+const ANGLE_CLOSED = 0;     // vertical
+const ANGLE_OPEN   = Phaser.Math.DegToRad(90);
+const PUSH_TORQUE  = 0.012; // door “assist” while pushing
+
+function preload(){}
 
 function create(){
   const M = this.matter;
 
-  // Floor
+  // ===== Visual: a long blue wall background with a lighter "hole" for the doorway
+  const wallY = 340, wallH = 250, wallW = 760;
+  const doorGapW = 80, doorGapH = 150;
+  const doorGapX = 520, doorGapY = wallY;
+
+  const g = this.add.graphics();
+  // long blue wall slab
+  g.fillStyle(0x1f6ad1, 1);
+  g.fillRoundedRect((config.width-wallW)/2, wallY - wallH/2, wallW, wallH, 8);
+  // cut-out look: draw a lighter rectangle to convey the opening
+  g.fillStyle(0xeef9ff, 1);
+  g.fillRoundedRect(doorGapX - doorGapW/2, doorGapY - doorGapH/2, doorGapW, doorGapH, 6);
+
+  // ===== Physics wall: three static bodies that match that opening
+  // left block
+  M.add.rectangle(doorGapX - (doorGapW/2) - (wallW/2 - doorGapW/2)/2,
+                  wallY, wallW/2 - doorGapW/2, wallH, { isStatic: true });
+  // right block
+  M.add.rectangle(doorGapX + (doorGapW/2) + (wallW/2 - doorGapW/2)/2,
+                  wallY, wallW/2 - doorGapW/2, wallH, { isStatic: true });
+  // lintel/top
+  M.add.rectangle(doorGapX, doorGapY - doorGapH/2 - 8, doorGapW, 16, { isStatic: true });
+
+  // Ground (so the door can rest)
   M.add.rectangle(450, 540, 900, 40, { isStatic: true });
 
-  // =======================
-  // SOLID WALL WITH DOORWAY
-  // =======================
-  // We build the wall as three static blocks with a gap (the doorway).
-  // Wall params
-  const wallY = 360, wallH = 260, wallThick = 40;
-  const openingW = 70, openingH = 140; // the doorway size
-  const openingX = 500, openingY = wallY; // doorway centre
-
-  // Left wall section
-  M.add.rectangle(openingX - (openingW/2) - 150, wallY, 300, wallH, { isStatic: true });
-  // Right wall section
-  M.add.rectangle(openingX + (openingW/2) + 150, wallY, 300, wallH, { isStatic: true });
-  // Lintel (top over the door)
-  M.add.rectangle(openingX, openingY - openingH/2 - wallThick/2, openingW, wallThick, { isStatic: true });
-  // (Optional) base threshold
-  M.add.rectangle(openingX, openingY + openingH/2 + 4, openingW, 8, { isStatic: true });
-
-  // =========
-  // THE DOOR
-  // =========
-  // Door sits in the doorway and is hinged on its LEFT edge.
-  const doorW = 12;               // thin plank thickness
-  const doorH = openingH - 6;     // slightly smaller than opening height
-  hingeX = openingX - openingW/2; // left jamb of the doorway
-  hingeY = openingY;
+  // ===== Door: brown plank hinged on the left jamb
+  const doorW = 12;
+  const doorH = doorGapH - 10;
+  const hingeX = doorGapX - doorGapW/2;
+  const hingeY = doorGapY;
 
   door = M.add.rectangle(hingeX + doorW/2, hingeY, doorW, doorH, {
-    restitution: 0,
-    friction: 0.6,           // higher friction so pushes transfer well
-    frictionStatic: 0.9,
-    frictionAir: AIR_DAMP,
+    friction: 0.7,
+    frictionStatic: 0.95,
+    frictionAir: 0.015,
     density: 0.003,
     angle: ANGLE_CLOSED
   });
 
-  // Hinge (pin the door's left edge to the wall)
+  // Hinge pin (brown door)
   M.add.worldConstraint(door, 0, 1, {
     pointA: { x: hingeX, y: hingeY },
     pointB: { x: -doorW/2, y: 0 }
   });
+  const doorVis = this.add.rectangle(0, 0, doorW, doorH, 0x8b5a2b).setStrokeStyle(2, 0x4a3015);
+  M.add.gameObject(doorVis, door);
+  this.add.circle(hingeX, hingeY, 4, 0x222222); // hinge dot
 
-  // Visuals for the door
-  const doorG = this.add.rectangle(0, 0, doorW, doorH, 0x6b4f2a).setStrokeStyle(2, 0x3c2a16);
-  M.add.gameObject(doorG, door);
-  // Hinge marker
-  this.add.circle(hingeX, hingeY, 4, 0x222222);
-
-  // =======
-  // PLAYER
-  // =======
-  player = M.add.circle(380, 460, 18, {
-    restitution: 0,
+  // ===== Player: green square that ignores gravity; simple WASD velocity
+  player = M.add.rectangle(360, 470, 28, 28, {
     friction: 0.2,
-    frictionAir: 0.01,
+    frictionAir: 0.02,
     density: 0.002
   });
-  const pSprite = this.add.rectangle(0, 0, 28, 28, 0x2a9d8f);
-  M.add.gameObject(pSprite, player);
+  player.ignoreGravity = true; // <-- lets W move up at start
+  const pVis = this.add.rectangle(0, 0, 28, 28, 0x2a9d8f);
+  M.add.gameObject(pVis, player);
 
-  // Input (WASD only as requested)
   keys = this.input.keyboard.addKeys({
     W: Phaser.Input.Keyboard.KeyCodes.W,
     A: Phaser.Input.Keyboard.KeyCodes.A,
@@ -111,73 +104,59 @@ function create(){
     D: Phaser.Input.Keyboard.KeyCodes.D
   });
 
-  // Detect contact with the door
+  // Detect actual physical contact with the door
   M.world.on('collisionstart', (evt) => {
-    evt.pairs.forEach(pair => {
-      const a = pair.bodyA, b = pair.bodyB;
-      if ((a === door && b === player) || (b === door && a === player)) pushingDoor = true;
+    evt.pairs.forEach(p => {
+      if ((p.bodyA === door && p.bodyB === player) || (p.bodyB === door && p.bodyA === player)) pushingDoor = true;
     });
   });
   M.world.on('collisionactive', (evt) => {
-    evt.pairs.forEach(pair => {
-      const a = pair.bodyA, b = pair.bodyB;
-      if ((a === door && b === player) || (b === door && a === player)) pushingDoor = true;
+    evt.pairs.forEach(p => {
+      if ((p.bodyA === door && p.bodyB === player) || (p.bodyB === door && p.bodyA === player)) pushingDoor = true;
     });
   });
   M.world.on('collisionend', (evt) => {
-    evt.pairs.forEach(pair => {
-      const a = pair.bodyA, b = pair.bodyB;
-      if ((a === door && b === player) || (b === door && a === player)) pushingDoor = false;
+    evt.pairs.forEach(p => {
+      if ((p.bodyA === door && p.bodyB === player) || (p.bodyB === door && p.bodyA === player)) pushingDoor = false;
     });
   });
 
-  // HUD
   this.add.text(16,16,
-    'WASD to move. Walk into the door; keep holding D to push.\nDoor is set in a solid wall and opens slowly on a hinge.',
+    'WASD to move (no jump). Walk into the brown door inside the blue wall.\nKeep pushing to open it slowly.',
     { fontFamily:'Arial, Helvetica, sans-serif', fontSize:'16px', color:'#003a2b' }
   );
 }
 
 function update(){
   const M = this.matter;
-  const runForce = 0.008; // movement force
-  const maxV = 6;
 
-  // Movement (WASD)
-  if (keys.A.isDown) M.body.applyForce(player, player.position, { x: -runForce, y: 0 });
-  if (keys.D.isDown) M.body.applyForce(player, player.position, { x: +runForce, y: 0 });
-  if (keys.W.isDown) {
-    // jump-ish if on/near floor (simple: if downward speed small and y close to floor)
-    if ((player.velocity.y ?? 0) < 0.02) M.body.setVelocity(player, { x: player.velocity.x, y: -9.5 });
-  }
+  // --- Simple WASD movement (direct velocity), player ignores gravity
+  let vx = 0, vy = 0;
+  if (keys.A.isDown) vx -= SPEED;
+  if (keys.D.isDown) vx += SPEED;
+  if (keys.W.isDown) vy -= SPEED;
+  if (keys.S.isDown) vy += SPEED;
+  M.body.setVelocity(player, { x: vx, y: vy });
 
-  // Cap horizontal speed a bit
-  if (Math.abs(player.velocity.x) > maxV) {
-    M.body.setVelocity(player, { x: Phaser.Math.Clamp(player.velocity.x, -maxV, maxV), y: player.velocity.y });
-  }
-
-  // If we’re touching the door AND pushing towards the opening direction, add a tiny angular boost
-  // OPEN_DIR = +1 means we open clockwise (increasing positive angle from vertical)
+  // --- Assist opening only while pushing on the door and pressing the opening direction
   if (pushingDoor && keys.D.isDown && OPEN_DIR === +1) {
-    const next = (door.angularVelocity || 0) + PUSH_TORQUE;
-    M.body.setAngularVelocity(door, Math.min(next, 1.2));
+    M.body.setAngularVelocity(door, Math.min((door.angularVelocity || 0) + PUSH_TORQUE, 1.2));
   }
   if (pushingDoor && keys.A.isDown && OPEN_DIR === -1) {
-    const next = (door.angularVelocity || 0) - PUSH_TORQUE;
-    M.body.setAngularVelocity(door, Math.max(next, -1.2));
+    M.body.setAngularVelocity(door, Math.max((door.angularVelocity || 0) - PUSH_TORQUE, -1.2));
   }
 
-  // Clamp the door angle between CLOSED and OPEN so it behaves like a real door
-  const ang = door.angle; // in radians
+  // --- Clamp door angle between closed and open
+  const ang = door.angle; // radians
   const minA = ANGLE_CLOSED;
-  const maxA = ANGLE_OPEN * OPEN_DIR + ANGLE_CLOSED; // handle direction
-  // Normalize to [min,max] depending on OPEN_DIR
+  const maxA = ANGLE_OPEN * OPEN_DIR + ANGLE_CLOSED;
+
   if (OPEN_DIR > 0) {
-    if (ang < minA) M.body.setAngle(door, minA), M.body.setAngularVelocity(door, 0);
-    if (ang > maxA) M.body.setAngle(door, maxA), M.body.setAngularVelocity(door, 0);
+    if (ang < minA) { M.body.setAngle(door, minA); M.body.setAngularVelocity(door, 0); }
+    if (ang > maxA) { M.body.setAngle(door, maxA); M.body.setAngularVelocity(door, 0); }
   } else {
-    if (ang > minA) M.body.setAngle(door, minA), M.body.setAngularVelocity(door, 0);
-    if (ang < maxA) M.body.setAngle(door, maxA), M.body.setAngularVelocity(door, 0);
+    if (ang > minA) { M.body.setAngle(door, minA); M.body.setAngularVelocity(door, 0); }
+    if (ang < maxA) { M.body.setAngle(door, maxA); M.body.setAngularVelocity(door, 0); }
   }
 }
 </script>
