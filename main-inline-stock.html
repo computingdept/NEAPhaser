@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Phaser – Main with Inline Stock Panel</title>
+  <title>Phaser – Main with Inline Stock Panel (Fixed)</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <script src="https://cdn.jsdelivr.net/npm/phaser@3.80.0/dist/phaser.js"></script>
 </head>
@@ -33,22 +33,23 @@ function create() {
 
   // Buttons row
   const btnY = 110;
-  makeButton(this, W/2 - 200, btnY, 120, 40, 'Stock', () => showStock(scene));
-  makeButton(this, W/2,       btnY, 120, 40, 'Shop',  () => showShop(scene));
-  makeButton(this, W/2 + 200, btnY, 120, 40, 'Save',  () => showSave(scene));
+  makeButton(this, W/2 - 200, btnY, 120, 40, 'Stock', () => { console.log('Stock clicked'); showStock(scene); });
+  makeButton(this, W/2,       btnY, 120, 40, 'Shop',  () => { console.log('Shop clicked');  showShop(scene);  });
+  makeButton(this, W/2 + 200, btnY, 120, 40, 'Save',  () => { console.log('Save clicked');  showSave(scene);  });
 
-  // Content panel (empty to start). We’ll draw into this container.
+  // Content container (we draw the active view here)
   scene.content = scene.add.container(0, 0);
 
-  // Draw a faint card area to anchor content (purely visual)
+  // Background card for the content area
   const card = this.add.rectangle(W/2, H/2 + 30, 720, 360, 0xffffff, 1)
      .setStrokeStyle(2, 0xe6d971)
-     .setDepth(0.5);
+     .setDepth(0); // keep low depth so buttons are always clickable
+
   this.add.text(W/2, H/2 - 145, 'Content', {
     fontFamily:'Arial, Helvetica, sans-serif', fontSize:'16px', color:'#3a6559'
-  }).setOrigin(0.5);
+  }).setOrigin(0.5).setDepth(0);
 
-  // Helper: clears current content
+  // Helper: clear current content
   function clearContent() {
     scene.content.removeAll(true); // destroy children
   }
@@ -80,14 +81,14 @@ function create() {
     let y = headY + 30;
     dogs.forEach(d => {
       const stock = Phaser.Math.Between(0, 25);
-      const price = (Phaser.Math.Between(150, 600) / 10).toFixed(2);
+      const price = (Phaser.Math.Between(150, 600) / 10).toFixed(2); // £15.0–£60.0
       scene.content.add(scene.add.text(colDog,   y, d,               rowStyle()));
       scene.content.add(scene.add.text(colStock, y, String(stock),   rowStyle()));
       scene.content.add(scene.add.text(colPrice, y, `£${price}`,     rowStyle()));
       y += 32;
     });
 
-    // Regenerate button (fills with new random values)
+    // Refresh button (new random values)
     makeMiniButton(scene, panelX, y + 16, 120, 32, 'Refresh', () => showStock(scene));
   }
 
@@ -108,15 +109,19 @@ function create() {
 
 /* ---------- UI helpers ---------- */
 function makeButton(scene, x, y, w, h, label, onClick) {
-  const g = scene.add.graphics({ x: x - w/2, y: y - h/2 });
+  const g = scene.add.graphics({ x: x - w/2, y: y - h/2 }).setDepth(9);
   drawButton(g, w, h, false);
+
   const text = scene.add.text(x, y, label, {
     fontFamily: 'Arial, Helvetica, sans-serif',
     fontSize: '18px',
     color: '#ffffff'
-  }).setOrigin(0.5);
+  }).setOrigin(0.5).setDepth(9);
 
-  const hit = scene.add.zone(x, y, w, h).setInteractive({ useHandCursor: true });
+  // High-depth interactive zone so it's always on top
+  const hit = scene.add.zone(x, y, w, h)
+    .setDepth(10)
+    .setInteractive({ useHandCursor: true });
   hit.on('pointerover', () => drawButton(g, w, h, true));
   hit.on('pointerout',  () => drawButton(g, w, h, false));
   hit.on('pointerdown', () => onClick && onClick());
