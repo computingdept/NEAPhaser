@@ -14,7 +14,7 @@
         physics: {
           default: 'arcade',
           arcade: {
-            gravity: { y: 200 }, // apples fall naturally
+            gravity: { y: 300 }, // apples fall naturally
             debug: false
           }
         },
@@ -26,8 +26,7 @@
       let player, cursors, apples, score = 0, scoreText, lives = 3, livesText;
 
       function preload() {
-        // Load a sprite image for the apple and player
-        // Replace with your own image paths if needed
+        // ✅ Load visible images
         this.load.image('apple', 'https://labs.phaser.io/assets/sprites/apple.png');
         this.load.image('player', 'https://labs.phaser.io/assets/sprites/block.png');
       }
@@ -41,16 +40,14 @@
         player.setCollideWorldBounds(true);
 
         // Apples group
-        apples = this.physics.add.group({
-          collideWorldBounds: true
-        });
+        apples = this.physics.add.group();
 
         // Spawn apples every 1.5 seconds
         this.time.addEvent({
           delay: 1500,
           callback: () => {
             const x = Phaser.Math.Between(50, 750);
-            const apple = apples.create(x, 0, 'apple');
+            const apple = apples.create(x, 0, 'apple'); // ✅ visible sprite
             apple.setCollideWorldBounds(true);
             apple.body.onWorldBounds = true;
 
