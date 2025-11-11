@@ -2,7 +2,7 @@
 <html>
   <head>
     <meta charset="UTF-8" />
-    <title>Phaser Broadcast & Catch Events</title>
+    <title>Catch the Apple Game with Lives</title>
     <script src="https://cdn.jsdelivr.net/npm/phaser@3.55.2/dist/phaser.js"></script>
   </head>
   <body>
@@ -11,13 +11,19 @@
         type: Phaser.AUTO,
         width: 800,
         height: 600,
-        physics: { default: 'arcade', arcade: { debug: false } },
+        physics: {
+          default: 'arcade',
+          arcade: {
+            gravity: { y: 200 }, // apples fall naturally
+            debug: false
+          }
+        },
         scene: { preload, create, update }
       };
 
       const game = new Phaser.Game(config);
 
-      let player, cursors, apples, score = 0, scoreText, appleSpeed = 150;
+      let player, cursors, apples, score = 0, scoreText, lives = 3, livesText;
 
       function preload() {}
 
@@ -25,35 +31,46 @@
         // Background
         this.cameras.main.setBackgroundColor('#222');
 
-        // Player
+        // Player block
         player = this.add.rectangle(400, 550, 50, 50, 0x00ff00);
         this.physics.add.existing(player);
         player.body.setCollideWorldBounds(true);
 
         // Apples group
-        apples = this.physics.add.group();
+        apples = this.physics.add.group({
+          collideWorldBounds: true
+        });
 
-        // Spawn apples
+        // Spawn apples every 1.5 seconds
         this.time.addEvent({
           delay: 1500,
           callback: () => {
             const x = Phaser.Math.Between(50, 750);
             const apple = this.add.rectangle(x, 0, 30, 30, 0xff0000);
             this.physics.add.existing(apple);
-            apple.body.setVelocityY(appleSpeed);
+            apple.body.setCollideWorldBounds(true);
+            apple.body.onWorldBounds = true; // detect hitting bottom
             apples.add(apple);
+
+            // Listen for apple hitting world bounds
+            apple.body.world.on('worldbounds', (body) => {
+              if (body.gameObject === apple) {
+                // Apple hit bottom → lose life
+                apple.destroy();
+                this.events.emit('missedApple');
+              }
+            });
           },
           loop: true
         });
 
-        // Overlap detection
+        // Overlap detection (catch event)
         this.physics.add.overlap(player, apples, (player, apple) => {
           apple.destroy();
-          // Broadcast "caughtApple"
           this.events.emit('caughtApple');
         });
 
-        // WASD controls
+        // WASD keys
         cursors = this.input.keyboard.addKeys({
           up: Phaser.Input.Keyboard.KeyCodes.W,
           down: Phaser.Input.Keyboard.KeyCodes.S,
@@ -61,26 +78,22 @@
           right: Phaser.Input.Keyboard.KeyCodes.D
         });
 
-        // Score text
+        // Score and lives text
         scoreText = this.add.text(16, 16, 'Score: 0', { fontSize: '24px', fill: '#fff' });
+        livesText = this.add.text(16, 50, 'Lives: 3', { fontSize: '24px', fill: '#fff' });
 
         // Catch events
         this.events.on('caughtApple', () => {
           score += 1;
           scoreText.setText('Score: ' + score);
-
-          // Broadcast other events based on score
-          if (score === 3) this.events.emit('speedUpApples');
-          if (score === 5) this.events.emit('changeBackground');
-          if (score === 10) this.events.emit('gameOver');
         });
 
-        this.events.on('speedUpApples', () => {
-          appleSpeed = 300; // apples fall faster
-        });
-
-        this.events.on('changeBackground', () => {
-          this.cameras.main.setBackgroundColor('#004488'); // change background color
+        this.events.on('missedApple', () => {
+          lives -= 1;
+          livesText.setText('Lives: ' + lives);
+          if (lives <= 0) {
+            this.events.emit('gameOver');
+          }
         });
 
         this.events.on('gameOver', () => {
