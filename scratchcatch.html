@@ -2,7 +2,7 @@
 <html>
   <head>
     <meta charset="UTF-8" />
-    <title>Catch the Apple Game</title>
+    <title>Phaser Broadcast & Catch Events</title>
     <script src="https://cdn.jsdelivr.net/npm/phaser@3.55.2/dist/phaser.js"></script>
   </head>
   <body>
@@ -11,47 +11,49 @@
         type: Phaser.AUTO,
         width: 800,
         height: 600,
-        physics: {
-          default: 'arcade',
-          arcade: { gravity: { y: 0 }, debug: false }
-        },
+        physics: { default: 'arcade', arcade: { debug: false } },
         scene: { preload, create, update }
       };
 
       const game = new Phaser.Game(config);
 
-      let player, cursors, apples, score = 0, scoreText;
+      let player, cursors, apples, score = 0, scoreText, appleSpeed = 150;
 
-      function preload() {
-        // Simple graphics: no external assets needed
-      }
+      function preload() {}
 
       function create() {
-        // Player block
+        // Background
+        this.cameras.main.setBackgroundColor('#222');
+
+        // Player
         player = this.add.rectangle(400, 550, 50, 50, 0x00ff00);
         this.physics.add.existing(player);
         player.body.setCollideWorldBounds(true);
 
-        // Apple group
+        // Apples group
         apples = this.physics.add.group();
 
-        // Spawn apples every 1.5 seconds
+        // Spawn apples
         this.time.addEvent({
           delay: 1500,
           callback: () => {
             const x = Phaser.Math.Between(50, 750);
             const apple = this.add.rectangle(x, 0, 30, 30, 0xff0000);
             this.physics.add.existing(apple);
-            apple.body.setVelocityY(150);
+            apple.body.setVelocityY(appleSpeed);
             apples.add(apple);
           },
           loop: true
         });
 
-        // Overlap = "when I catch"
-        this.physics.add.overlap(player, apples, catchApple, null, this);
+        // Overlap detection
+        this.physics.add.overlap(player, apples, (player, apple) => {
+          apple.destroy();
+          // Broadcast "caughtApple"
+          this.events.emit('caughtApple');
+        });
 
-        // WASD keys
+        // WASD controls
         cursors = this.input.keyboard.addKeys({
           up: Phaser.Input.Keyboard.KeyCodes.W,
           down: Phaser.Input.Keyboard.KeyCodes.S,
@@ -61,10 +63,37 @@
 
         // Score text
         scoreText = this.add.text(16, 16, 'Score: 0', { fontSize: '24px', fill: '#fff' });
+
+        // Catch events
+        this.events.on('caughtApple', () => {
+          score += 1;
+          scoreText.setText('Score: ' + score);
+
+          // Broadcast other events based on score
+          if (score === 3) this.events.emit('speedUpApples');
+          if (score === 5) this.events.emit('changeBackground');
+          if (score === 10) this.events.emit('gameOver');
+        });
+
+        this.events.on('speedUpApples', () => {
+          appleSpeed = 300; // apples fall faster
+        });
+
+        this.events.on('changeBackground', () => {
+          this.cameras.main.setBackgroundColor('#004488'); // change background color
+        });
+
+        this.events.on('gameOver', () => {
+          this.add.text(300, 300, 'GAME OVER', { fontSize: '48px', fill: '#ff0000' });
+          player.body.setVelocity(0);
+          player.body.moves = false; // stop player
+        });
       }
 
       function update() {
         const speed = 300;
+        if (!player.body.moves) return; // stop movement if game over
+
         player.body.setVelocity(0);
 
         if (cursors.left.isDown) player.body.setVelocityX(-speed);
@@ -72,13 +101,6 @@
 
         if (cursors.up.isDown) player.body.setVelocityY(-speed);
         else if (cursors.down.isDown) player.body.setVelocityY(speed);
-      }
-
-      // Scratch-style "when I catch"
-      function catchApple(player, apple) {
-        apple.destroy(); // remove apple
-        score += 1;
-        scoreText.setText('Score: ' + score);
       }
     </script>
   </body>
