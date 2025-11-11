@@ -2,7 +2,7 @@
 <html>
   <head>
     <meta charset="UTF-8" />
-    <title>Catch the Apple Game with Lives</title>
+    <title>Catch the Apple Game (Sprites)</title>
     <script src="https://cdn.jsdelivr.net/npm/phaser@3.55.2/dist/phaser.js"></script>
   </head>
   <body>
@@ -25,16 +25,20 @@
 
       let player, cursors, apples, score = 0, scoreText, lives = 3, livesText;
 
-      function preload() {}
+      function preload() {
+        // Load a sprite image for the apple and player
+        // Replace with your own image paths if needed
+        this.load.image('apple', 'https://labs.phaser.io/assets/sprites/apple.png');
+        this.load.image('player', 'https://labs.phaser.io/assets/sprites/block.png');
+      }
 
       function create() {
         // Background
         this.cameras.main.setBackgroundColor('#222');
 
-        // Player block
-        player = this.add.rectangle(400, 550, 50, 50, 0x00ff00);
-        this.physics.add.existing(player);
-        player.body.setCollideWorldBounds(true);
+        // Player sprite
+        player = this.physics.add.sprite(400, 550, 'player');
+        player.setCollideWorldBounds(true);
 
         // Apples group
         apples = this.physics.add.group({
@@ -46,16 +50,13 @@
           delay: 1500,
           callback: () => {
             const x = Phaser.Math.Between(50, 750);
-            const apple = this.add.rectangle(x, 0, 30, 30, 0xff0000);
-            this.physics.add.existing(apple);
-            apple.body.setCollideWorldBounds(true);
-            apple.body.onWorldBounds = true; // detect hitting bottom
-            apples.add(apple);
+            const apple = apples.create(x, 0, 'apple');
+            apple.setCollideWorldBounds(true);
+            apple.body.onWorldBounds = true;
 
-            // Listen for apple hitting world bounds
+            // Detect when apple hits bottom
             apple.body.world.on('worldbounds', (body) => {
               if (body.gameObject === apple) {
-                // Apple hit bottom → lose life
                 apple.destroy();
                 this.events.emit('missedApple');
               }
