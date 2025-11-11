@@ -30,11 +30,7 @@
       box-shadow: 0 4px 10px rgba(0,0,0,0.05);
       text-align: left;
     }
-    h2 {
-      color: #006e51;
-      font-size: 1.2em;
-      text-align: center;
-    }
+    h2 { color: #006e51; font-size: 1.2em; text-align: center; }
     a.button {
       display: inline-block;
       text-decoration: none;
@@ -46,17 +42,9 @@
       transition: background 0.2s ease;
     }
     a.button:hover { background: #009a70; }
-    ul {
-      margin-top: 8px;
-      padding-left: 18px;
-      font-size: 0.95em;
-    }
+    ul { margin-top: 8px; padding-left: 18px; font-size: 0.95em; }
     ul li { margin-bottom: 4px; }
-    footer {
-      margin-top: 3em;
-      font-size: 0.9em;
-      color: #666;
-    }
+    footer { margin-top: 3em; font-size: 0.9em; color: #666; }
   </style>
 </head>
 <body>
@@ -66,6 +54,7 @@
   </p>
 
   <div class="grid">
+    <!-- existing cards ... -->
     <div class="card">
       <h2>No Gravity – Up/Down Keys</h2>
       <p>Move the sprite up and down using ↑ ↓ or W / S.</p>
@@ -207,6 +196,30 @@
         <li>Make debris drift slowly with space gravity.</li>
       </ul>
       <a class="button" href="planet-break.html">Open Planet Break Demo</a>
+    </div>
+
+    <!-- NEW: Main + Stock (Overlay) -->
+    <div class="card">
+      <h2>Main Menu + Stock (Overlay)</h2>
+      <p>Top buttons: Stock · Shop · Save. Clicking <em>Stock</em> opens a modal-style overlay showing dog stock and prices.</p>
+      <ul>
+        <li>Add sort by price/stock.</li>
+        <li>Make rows clickable to edit values.</li>
+        <li>Export to JSON (download).</li>
+      </ul>
+      <a class="button" href="main-with-stock-overlay.html">Open Overlay Version</a>
+    </div>
+
+    <!-- NEW: Main + Stock (Inline) -->
+    <div class="card">
+      <h2>Main Menu + Stock (Inline)</h2>
+      <p>Same buttons, but the stock table renders inline on the main page (no overlay). Includes a Refresh button.</p>
+      <ul>
+        <li>Add pagination for >10 items.</li>
+        <li>Persist data with localStorage.</li>
+        <li>Filter by breed.</li>
+      </ul>
+      <a class="button" href="main-inline-stock.html">Open Inline Version</a>
     </div>
   </div>
 
