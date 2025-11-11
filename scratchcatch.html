@@ -2,151 +2,101 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Phaser – Catch the Apple (Scratch-style)</title>
+  <title>Catch the Apple – Debug</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <script src="https://cdn.jsdelivr.net/npm/phaser@3.80.0/dist/phaser.js"></script>
+  <style>
+    html,body{margin:0;padding:0;background:#f6fff5}
+    #err{position:fixed;left:12px;bottom:12px;right:12px;max-height:45vh;overflow:auto;
+         font:13px/1.35 monospace;background:#fff0f0;border:1px solid #e07a7a;padding:8px;color:#5b0000;display:none}
+  </style>
+  <!-- Use a pinned, widely-used Phaser version to avoid CDN quirks -->
+  <script src="https://unpkg.com/phaser@3.60.0/dist/phaser.min.js"></script>
+  <script>
+    // Global error catchers (fires even if Phaser never boots)
+    window.addEventListener('error', e => showErr('Error: '+e.message+'\n'+(e.filename||'')+':'+(e.lineno||'') ), true);
+    window.addEventListener('unhandledrejection', e => showErr('Promise rejection: '+(e.reason && e.reason.message || e.reason)), true);
+    function showErr(msg){
+      const box = document.getElementById('err');
+      box.style.display='block';
+      box.textContent += (box.textContent ? '\n' : '') + msg;
+      console.log('[debug]', msg);
+    }
+    // Verify Phaser loaded
+    if (!window.Phaser) { showErr('Phaser failed to load. Check network/CSP.'); }
+  </script>
 </head>
 <body>
+<div id="err"></div>
 <script>
-/*
-  CATCH THE APPLE – Scratch-style
-  - ← → move the basket, R restart
-  - CATCH = Arcade Physics overlap between basket and apples
-  - EMIT = (1) scene.events.emit(...) custom event, (2) particles.emitParticleAt(...)
-*/
+(function(){
+  if (!window.Phaser) return;
 
-const config = {
-  type: Phaser.AUTO,
-  width: 800,
-  height: 520,
-  backgroundColor: '#f6fff5',
-  physics: { default: 'arcade', arcade: { gravity: { y: 0 }, debug: false } },
-  scene: { preload, create, update }
-};
-new Phaser.Game(config);
+  const config = {
+    type: Phaser.AUTO,
+    width: 800,
+    height: 520,
+    backgroundColor: '#f6fff5',
+    physics: { default: 'arcade', arcade: { gravity: { y: 0 }, debug: false } },
+    scene: { preload, create, update }
+  };
+  new Phaser.Game(config);
 
-let basket, cursors, apples, score = 0, misses = 0, scoreText, missText, emitter, spawnTimer;
+  let basket, cursors, apples, score=0, scoreText, missText;
 
-function preload() {
-  // Apple texture
-  const g1 = this.add.graphics();
-  g1.fillStyle(0xe63946, 1).fillCircle(16, 16, 14);
-  g1.fillStyle(0x2a9d8f, 1).fillRect(14, 1, 4, 8); // stem
-  g1.generateTexture('apple', 32, 32);
-  g1.destroy();
+  function preload(){
+    // Draw textures inline (no external assets)
+    const g1 = this.add.graphics();
+    g1.fillStyle(0xe63946, 1).fillCircle(16, 16, 14);
+    g1.generateTexture('apple', 32, 32); g1.destroy();
 
-  // Basket texture
-  const g2 = this.add.graphics();
-  g2.fillStyle(0x8d5524, 1).fillRoundedRect(0, 0, 80, 26, 8);
-  g2.lineStyle(3, 0x5d3a14, 1).strokeRoundedRect(0, 0, 80, 26, 8);
-  g2.generateTexture('basket', 80, 26);
-  g2.destroy();
-
-  // Spark particle
-  const g3 = this.add.graphics();
-  g3.fillStyle(0xffd166, 1).fillCircle(3, 3, 3);
-  g3.generateTexture('spark', 6, 6);
-  g3.destroy();
-}
-
-function create() {
-  const W = this.scale.width, H = this.scale.height;
-
-  // Player basket
-  basket = this.physics.add.image(W/2, H - 40, 'basket');
-  basket.setImmovable(true).setCollideWorldBounds(true);
-
-  cursors = this.input.keyboard.createCursorKeys();
-  this.input.keyboard.on('keydown-R', () => this.scene.restart());
-
-  // Apples group
-  apples = this.physics.add.group({ runChildUpdate: false });
-
-  // PARTICLE EMITTER (visual EMIT)
-  const particles = this.add.particles('spark');
-  emitter = particles.createEmitter({
-    speed: { min: 60, max: 140 },
-    angle: { min: 220, max: 320 },
-    scale: { start: 1, end: 0 },
-    alpha: { start: 1, end: 0 },
-    lifespan: 400,
-    quantity: 12
-  });
-
-  // HUD
-  scoreText = this.add.text(16, 16, 'Score: 0', { fontFamily: 'Arial', fontSize: '20px', color: '#003a2b' });
-  missText  = this.add.text(16, 44, 'Misses: 0', { fontFamily: 'Arial', fontSize: '18px', color: '#b23b3b' });
-  this.add.text(W - 16, 16, '← → move   •   R restart', { fontFamily: 'Arial', fontSize: '16px', color: '#3a6559' }).setOrigin(1,0);
-
-  // CATCH: overlap detection
-  this.physics.add.overlap(basket, apples, (_b, apple) => handleCatch.call(this, apple), null, this);
-
-  // EMIT: listen to custom catch event
-  this.events.on('apple:caught', payload => {
-    scoreText.setText('Score: ' + payload.totalScore);
-  });
-
-  // Spawn apples repeatedly
-  spawnTimer = this.time.addEvent({ delay: 800, loop: true, callback: () => spawnApple.call(this) });
-}
-
-function update() {
-  // Basket movement
-  const speed = 320;
-  basket.setVelocityX(0);
-  if (cursors.left.isDown)  basket.setVelocityX(-speed);
-  if (cursors.right.isDown) basket.setVelocityX(speed);
-
-  // Move apples downward (no gravity)
-  Phaser.Actions.IncY(apples.getChildren(), 2.4);
-
-  // Despawn if below screen
-  const H = this.scale.height;
-  apples.getChildren().forEach(a => {
-    if (a.active && a.y > H + 20) {
-      a.disableBody(true, true);
-      misses++;
-      missText.setText('Misses: ' + misses);
-    }
-  });
-}
-
-/* ---------------- Helpers ---------------- */
-
-function spawnApple() {
-  const W = this.scale.width;
-
-  // Pooling-safe get/create
-  let apple = apples.getFirstDead(false);
-  if (!apple) {
-    apple = apples.create(0, 0, 'apple');               // Arcade Sprite
-    apple.setImmovable(true);                           // don’t push basket
-    // Set a circular body safely via BODY API (avoid setCircle on sprite)
-    apple.body.setCircle(14);                           // radius
-    apple.body.setOffset(2, 2);                         // align circle inside 32x32 texture
-    apple.body.allowGravity = false;
+    const g2 = this.add.graphics();
+    g2.fillStyle(0x8d5524, 1).fillRoundedRect(0,0, 90,28,8);
+    g2.generateTexture('basket', 90, 28); g2.destroy();
   }
 
-  // Reset position
-  apple.enableBody(true, Phaser.Math.Between(20, W - 20), -20, true, true);
-  // (Optional per-apple speed var)
-  apple.ySpeed = Phaser.Math.Between(140, 220) / 60;
-}
+  function create(){
+    const W = this.scale.width, H = this.scale.height;
 
-// CATCH handler
-function handleCatch(apple) {
-  const points = 1;
-  score += points;
+    basket = this.physics.add.image(W/2, H-40, 'basket').setImmovable(true).setCollideWorldBounds(true);
+    cursors = this.input.keyboard.createCursorKeys();
 
-  // EMIT (particles): visual pop where caught
-  emitter.emitParticleAt(apple.x, apple.y);
+    apples = this.physics.add.group();
 
-  // Disable for reuse
-  apple.disableBody(true, true);
+    scoreText = this.add.text(16,16,'Score: 0',{fontFamily:'Arial',fontSize:'20px',color:'#003a2b'});
+    missText  = this.add.text(16,44,'Misses: 0',{fontFamily:'Arial',fontSize:'18px',color:'#b23b3b'});
+    this.add.text(W-16,16,'←/→ move',{fontFamily:'Arial',fontSize:'16px',color:'#3a6559'}).setOrigin(1,0);
 
-  // EMIT (custom event): let UI/systems react
-  this.events.emit('apple:caught', { x: apple.x, y: apple.y, points, totalScore: score });
-}
+    this.physics.add.overlap(basket, apples, (_b, a)=>{
+      score++; scoreText.setText('Score: '+score); a.destroy();
+    });
+
+    // Simple spawner
+    this.time.addEvent({
+      delay: 900, loop: true,
+      callback: ()=>{
+        const x = Phaser.Math.Between(20, W-20);
+        const a = apples.create(x, -20, 'apple');
+        a.setVelocityY(170);
+      }
+    });
+
+    // sanity ping
+    console.log('[debug] scene created OK');
+    document.getElementById('err').style.display='none';
+  }
+
+  function update(){
+    const speed = 360;
+    basket.setVelocityX(0);
+    if (cursors.left.isDown)  basket.setVelocityX(-speed);
+    if (cursors.right.isDown) basket.setVelocityX(speed);
+
+    const H = this.scale.height;
+    apples.getChildren().forEach(a=>{
+      if (a.active && a.y > H+40) { a.destroy(); const m = Number(missText.text.split(': ')[1])+1; missText.setText('Misses: '+m); }
+    });
+  }
+})();
 </script>
 </body>
 </html>
