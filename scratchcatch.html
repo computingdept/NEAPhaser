@@ -1,117 +1,162 @@
 <!DOCTYPE html>
-<html>
-  <head>
-    <meta charset="UTF-8" />
-    <title>Catch the Apple Game</title>
-    <script src="https://cdn.jsdelivr.net/npm/phaser@3.55.2/dist/phaser.js"></script>
-  </head>
-  <body>
-    <script>
-      const config = {
-        type: Phaser.AUTO,
-        width: 800,
-        height: 600,
-        physics: {
-          default: 'arcade',
-          arcade: {
-            gravity: { y: 300 }, // apples fall naturally
-            debug: false
-          }
-        },
-        scene: { preload, create, update }
-      };
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Phaser – Catch the Apple (Scratch-style)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <script src="https://cdn.jsdelivr.net/npm/phaser@3.80.0/dist/phaser.js"></script>
+</head>
+<body>
+<script>
+/*
+  CATCH THE APPLE – Scratch-style
 
-      const game = new Phaser.Game(config);
+  ► Controls: ← → to move the basket, R to restart.
+  ► Apples fall from the top. If the basket "catches" an apple, you score +1.
+  ► This demo highlights two meanings of "emit" in Phaser:
+      (A) Custom events:  scene.events.emit('apple:caught', payload)
+      (B) Particles:      particleEmitter.emitParticle(...)  (visual effect)
 
-      let player, cursors, apples, score = 0, scoreText, lives = 3, livesText;
+  Key lines are tagged with  // CATCH  and  // EMIT
+*/
 
-      function preload() {
-        // ✅ Load visible images from Phaser’s asset CDN
-        this.load.image('apple', 'https://labs.phaser.io/assets/sprites/apple.png');
-        this.load.image('player', 'https://labs.phaser.io/assets/sprites/block.png');
-      }
+const config = {
+  type: Phaser.AUTO,
+  width: 800,
+  height: 520,
+  backgroundColor: '#f6fff5',
+  physics: {
+    default: 'arcade',
+    arcade: { gravity: { y: 0 }, debug: false }
+  },
+  scene: { preload, create, update }
+};
+new Phaser.Game(config);
 
-      function create() {
-        this.cameras.main.setBackgroundColor('#222');
+let basket, cursors, apples, score = 0, misses = 0, scoreText, missText, emitter, spawnTimer;
 
-        // Player sprite
-        player = this.physics.add.sprite(400, 550, 'player');
-        player.setCollideWorldBounds(true);
+function preload() {
+  // Simple shapes as textures so no external assets are needed
+  // Apple
+  const g1 = this.add.graphics();
+  g1.fillStyle(0xe63946, 1).fillCircle(16, 16, 14);            // red body
+  g1.fillStyle(0x2a9d8f, 1).fillRect(14, 1, 4, 8);             // stem
+  g1.generateTexture('apple', 32, 32);
+  g1.destroy();
 
-        // Apples group
-        apples = this.physics.add.group();
+  // Basket
+  const g2 = this.add.graphics();
+  g2.fillStyle(0x8d5524, 1).fillRoundedRect(0, 0, 80, 26, 8);
+  g2.lineStyle(3, 0x5d3a14, 1).strokeRoundedRect(0, 0, 80, 26, 8);
+  g2.generateTexture('basket', 80, 26);
+  g2.destroy();
 
-        // Spawn apples every 1.5 seconds
-        this.time.addEvent({
-          delay: 1500,
-          callback: () => {
-            const x = Phaser.Math.Between(50, 750);
-            const apple = apples.create(x, 0, 'apple'); // ✅ visible sprite
-            apple.setCollideWorldBounds(true);
-            apple.body.onWorldBounds = true;
+  // Particle (spark)
+  const g3 = this.add.graphics();
+  g3.fillStyle(0xffd166, 1).fillCircle(3, 3, 3);
+  g3.generateTexture('spark', 6, 6);
+  g3.destroy();
+}
 
-            // Detect when apple hits bottom
-            apple.body.world.on('worldbounds', (body) => {
-              if (body.gameObject === apple) {
-                apple.destroy();
-                this.events.emit('missedApple');
-              }
-            });
-          },
-          loop: true
-        });
+function create() {
+  const W = this.scale.width, H = this.scale.height;
 
-        // Overlap detection (catch event)
-        this.physics.add.overlap(player, apples, (player, apple) => {
-          apple.destroy();
-          this.events.emit('caughtApple');
-        });
+  // Basket (player)
+  basket = this.physics.add.image(W/2, H - 40, 'basket');
+  basket.setImmovable(true).setCollideWorldBounds(true);
 
-        // WASD keys
-        cursors = this.input.keyboard.addKeys({
-          up: Phaser.Input.Keyboard.KeyCodes.W,
-          down: Phaser.Input.Keyboard.KeyCodes.S,
-          left: Phaser.Input.Keyboard.KeyCodes.A,
-          right: Phaser.Input.Keyboard.KeyCodes.D
-        });
+  cursors = this.input.keyboard.createCursorKeys();
+  this.input.keyboard.on('keydown-R', () => this.scene.restart());
 
-        // Score and lives text
-        scoreText = this.add.text(16, 16, 'Score: 0', { fontSize: '24px', fill: '#fff' });
-        livesText = this.add.text(16, 50, 'Lives: 3', { fontSize: '24px', fill: '#fff' });
+  // Group of falling apples
+  apples = this.physics.add.group();
 
-        // Catch events
-        this.events.on('caughtApple', () => {
-          score += 1;
-          scoreText.setText('Score: ' + score);
-        });
+  // --- PARTICLE EMITTER (visual EMIT) ---
+  // We'll pop a little spark burst on each catch
+  const particles = this.add.particles('spark');
+  emitter = particles.createEmitter({
+    // These settings only apply when we trigger .emitParticleAt(x,y)
+    speed: { min: 60, max: 140 },
+    angle: { min: 220, max: 320 },
+    scale: { start: 1, end: 0 },
+    alpha: { start: 1, end: 0 },
+    lifespan: 400,
+    quantity: 12
+  });
 
-        this.events.on('missedApple', () => {
-          lives -= 1;
-          livesText.setText('Lives: ' + lives);
-          if (lives <= 0) {
-            this.events.emit('gameOver');
-          }
-        });
+  // HUD
+  scoreText = this.add.text(16, 16, 'Score: 0', { fontFamily: 'Arial', fontSize: '20px', color: '#003a2b' });
+  missText  = this.add.text(16, 44, 'Misses: 0', { fontFamily: 'Arial', fontSize: '18px', color: '#b23b3b' });
+  this.add.text(W - 16, 16, '← → move   •   R restart', { fontFamily: 'Arial', fontSize: '16px', color: '#3a6559' })
+      .setOrigin(1,0);
 
-        this.events.on('gameOver', () => {
-          this.add.text(300, 300, 'GAME OVER', { fontSize: '48px', fill: '#ff0000' });
-          player.body.setVelocity(0);
-          player.body.moves = false;
-        });
-      }
+  // --- CATCH: set up overlap between basket and apples ---
+  // When they overlap, run handleCatch (see function below)
+  this.physics.add.overlap(basket, apples, (basket, apple) => handleCatch.call(this, apple), null, this); // CATCH
 
-      function update() {
-        const speed = 300;
-        if (!player.body.moves) return;
+  // --- EMIT: listen to our custom catch event (for decoupled UI/game reactions) ---
+  this.events.on('apple:caught', (payload) => {                                                      // EMIT (listener)
+    // payload = { x, y, points, totalScore }
+    scoreText.setText('Score: ' + payload.totalScore);
+  });
 
-        player.body.setVelocity(0);
+  // Spawn apples repeatedly
+  spawnTimer = this.time.addEvent({
+    delay: 800, loop: true, callback: () => spawnApple.call(this)
+  });
+}
 
-        if (cursors.left.isDown) player.body.setVelocityX(-speed);
-        else if (cursors.right.isDown) player.body.setVelocityX(speed);
+function update() {
+  // Left/Right movement
+  const speed = 320;
+  basket.setVelocityX(0);
+  if (cursors.left.isDown)  basket.setVelocityX(-speed);
+  if (cursors.right.isDown) basket.setVelocityX(speed);
 
-        if (cursors.up.isDown) player.body.setVelocityY(-speed);
-        else if (cursors.down.isDown) player.body.setVelocityY(speed);
-      }
-    </script>
-  </body>
+  // Move apples down each frame (we’re using Arcade without gravity here)
+  Phaser.Actions.IncY(apples.getChildren(), 2.4);
+
+  // If an apple goes below the floor, count a miss and recycle it
+  const H = this.scale.height;
+  apples.getChildren().forEach(a => {
+    if (a.active && a.y > H + 20) {
+      a.disableBody(true, true);
+      misses++;
+      missText.setText('Misses: ' + misses);
+    }
+  });
+}
+
+/* ----------------- Helpers ----------------- */
+
+function spawnApple() {
+  const W = this.scale.width;
+  // Re-use a dead apple if possible (cheap pooling), else create
+  let apple = apples.getFirstDead();
+  if (!apple) {
+    apple = apples.create(0, 0, 'apple');
+    apple.setCircle(14, 2, 2);     // better round collision
+    apple.setImmovable(true);      // apples won’t nudge the basket
+  }
+  // Reset position at a random x, slightly above the top
+  apple.enableBody(true, Phaser.Math.Between(20, W-20), -20, true, true);
+  apple.ySpeed = Phaser.Math.Between(140, 220) / 60;  // per-frame extra speed variability
+}
+
+function handleCatch(apple) {
+  // --- CATCH: overlap triggered -> the basket "caught" the apple ---
+  const points = 1;
+  score += points;
+
+  // Pop a particle burst where the apple was (visual EMIT)
+  emitter.emitParticleAt(apple.x, apple.y);                                               // EMIT (particles)
+
+  // Disable the apple (and allow reuse by spawnApple)
+  apple.disableBody(true, true);
+
+  // --- EMIT: broadcast a custom event with info about the catch ---
+  this.events.emit('apple:caught', { x: apple.x, y: apple.y, points, totalScore: score }); // EMIT (custom event)
+}
+</script>
+</body>
 </html>
