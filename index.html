@@ -2,130 +2,103 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Phaser Demo Collection – RHSC Computing</title>
-  <style>
-    :root{
-      --green:#006e51; --green2:#009a70; --card:#fffef4; --line:#e6d971;
-      --bg:#f6fff5; --text:#003a2b;
-    }
-    body{
-      font-family:'Segoe UI', Arial, sans-serif; background:var(--bg);
-      color:var(--text); text-align:center; padding:56px 20px;
-    }
-    h1{ color:var(--green); margin-bottom:.4em; }
-
-    .section-toggle{
-      display:inline-flex; align-items:center; gap:.6rem;
-      border:2px solid var(--line); border-radius:12px; padding:.35rem .8rem;
-      background:#fff; color:var(--green); font-size:1.05rem;
-      font-weight:600; cursor:pointer; user-select:none;
-    }
-    .section-toggle:hover{ background:#fffbdf; }
-    .chev{ transition: transform .2s ease; }
-    .section[aria-expanded="true"] .chev{ transform: rotate(90deg); }
-
-    .section-body{
-      max-width:980px; margin:10px auto 0;
-      overflow:hidden; transition:max-height .25s ease, opacity .2s ease;
-    }
-    .section[aria-expanded="false"] .section-body{ max-height:0; opacity:0; }
-    .section[aria-expanded="true"]  .section-body{ max-height:1000px; opacity:1; }
-
-    .grid{
-      display:grid; grid-template-columns: repeat(auto-fit, minmax(260px,1fr));
-      gap:1.1em; margin:0 auto 4px;
-    }
-    .card{
-      background:var(--card); border:2px solid var(--line);
-      border-radius:16px; padding:18px; box-shadow:0 4px 10px rgba(0,0,0,.05);
-    }
-    .card h3{ color:var(--green); font-size:1.05rem; margin:0 0 10px; }
-    .button{
-      display:inline-block; background:var(--green); color:#fff; text-decoration:none;
-      padding:9px 16px; border-radius:10px; transition:background .15s;
-    }
-    .button:hover{ background:var(--green2); }
-    footer{ margin-top:28px; font-size:.9rem; color:#667; }
-  </style>
+  <title>Phaser – Two Globes Bounce</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <script src="https://cdn.jsdelivr.net/npm/phaser@3.80.0/dist/phaser.js"></script>
 </head>
 <body>
-  <h1>🎮 RHSC Computing – Phaser Demos</h1>
+<script>
+const config = {
+  type: Phaser.AUTO,
+  width: 900,
+  height: 560,
+  backgroundColor: '#0b1b2b',
+  physics: {
+    default: 'arcade',
+    arcade: {
+      gravity: { y: 0 },
+      debug: false
+    }
+  },
+  scene: { preload, create, update }
+};
+new Phaser.Game(config);
 
-  <!-- MOVEMENT & PHYSICS -->
-  <section class="section" aria-expanded="true">
-    <button class="section-toggle" aria-controls="sec-move" aria-expanded="true">
-      <span class="chev">▶</span> 🏃 Movement & Physics
-    </button>
-    <div id="sec-move" class="section-body">
-      <div class="grid">
-        <div class="card"><h3>No Gravity</h3><a class="button" href="nogravity.html">Open</a></div>
-        <div class="card"><h3>Gravity</h3><a class="button" href="gravity.html">Open</a></div>
-        <div class="card"><h3>Side-Scroller</h3><a class="button" href="sidescroller.html">Open</a></div>
-        <div class="card"><h3>Character Movement</h3><a class="button" href="character-movement.html">Open</a></div>
-        <div class="card"><h3>Solid Collision (No Gravity)</h3><a class="button" href="solid-collision.html">Open</a></div>
-        <div class="card"><h3>Solid Collision + Gravity</h3><a class="button" href="solid-gravity.html">Open</a></div>
-        <div class="card"><h3>Door with Hinge (Matter)</h3><a class="button" href="door-hinge.html">Open</a></div>
-        <div class="card"><h3>Bounce Balls</h3><a class="button" href="bounceballs.html">Open</a></div>
-      </div>
-    </div>
-  </section>
+let globeA, globeB, label;
 
-  <!-- INTERACTION & COLLISION -->
-  <section class="section" aria-expanded="true">
-    <button class="section-toggle" aria-controls="sec-interact" aria-expanded="true">
-      <span class="chev">▶</span> 🧱 Interaction & Collision
-    </button>
-    <div id="sec-interact" class="section-body">
-      <div class="grid">
-        <div class="card"><h3>Collision</h3><a class="button" href="collision.html">Open</a></div>
-        <div class="card"><h3>Collision + Score</h3><a class="button" href="collision-score.html">Open</a></div>
-        <div class="card"><h3>Scratch Catch</h3><a class="button" href="scratchcatch.html">Open</a></div>
-        <div class="card"><h3>Planet Break (Matter)</h3><a class="button" href="planet-break.html">Open</a></div>
-        <div class="card"><h3>Teleport</h3><a class="button" href="teleport.html">Open</a></div>
-      </div>
-    </div>
-  </section>
+function preload() {
+  // Create a glossy globe texture (64x64) so we don’t rely on external images.
+  const g = this.add.graphics();
+  // base
+  g.fillStyle(0x66c2ff, 1).fillCircle(32, 32, 30);
+  // highlight
+  g.fillStyle(0xffffff, 0.35).fillCircle(22, 22, 12);
+  // rim
+  g.lineStyle(3, 0x3aa0e0, 1).strokeCircle(32, 32, 30);
+  g.generateTexture('globe', 64, 64);
+  g.destroy();
+}
 
-  <!-- CREATIVITY & UI -->
-  <section class="section" aria-expanded="true">
-    <button class="section-toggle" aria-controls="sec-ui" aria-expanded="true">
-      <span class="chev">▶</span> 🪄 Creativity & UI
-    </button>
-    <div id="sec-ui" class="section-body">
-      <div class="grid">
-        <div class="card"><h3>Mouse Follow</h3><a class="button" href="mouse-follow-shelf.html">Open</a></div>
-        <div class="card"><h3>Mouse Follow – Shelf List</h3><a class="button" href="mouse-follow-shelf-list.html">Open</a></div>
-        <div class="card"><h3>Mouse Follow – Placed Items</h3><a class="button" href="mouse-follow-shelf-placed.html">Open</a></div>
-      </div>
-    </div>
-  </section>
+function create() {
+  const W = this.scale.width, H = this.scale.height;
 
-  <!-- MENUS & SYSTEMS -->
-  <section class="section" aria-expanded="true">
-    <button class="section-toggle" aria-controls="sec-systems" aria-expanded="true">
-      <span class="chev">▶</span> 🧩 Menus & Systems
-    </button>
-    <div id="sec-systems" class="section-body">
-      <div class="grid">
-        <div class="card"><h3>Main Menu + Stock (Overlay)</h3><a class="button" href="main-with-stock-overlay.html">Open</a></div>
-        <div class="card"><h3>Main Menu + Stock (Inline)</h3><a class="button" href="main-inline-stock.html">Open</a></div>
-      </div>
-    </div>
-  </section>
+  // Add two physics images (balls)
+  globeA = this.physics.add.image(W * 0.33, H * 0.45, 'globe');
+  globeB = this.physics.add.image(W * 0.67, H * 0.55, 'globe');
 
-  <footer>© 2025 RHSC Computing – Phaser Examples</footer>
+  // Make them round and elastic
+  [globeA, globeB].forEach(ball => {
+    // Set a circular body that matches the 64x64 texture nicely
+    ball.body.setCircle(30);      // radius
+    ball.body.setOffset(2, 2);    // center circle inside the 64x64 image
+    ball.setBounce(1, 1);         // perfectly elastic collisions
+    ball.setCollideWorldBounds(true);
+  });
 
-  <script>
-    // Collapsible sections
-    document.querySelectorAll('.section').forEach(section => {
-      const btn = section.querySelector('.section-toggle');
-      btn.addEventListener('click', () => {
-        const isOpen = section.getAttribute('aria-expanded') === 'true';
-        section.setAttribute('aria-expanded', String(!isOpen));
-        btn.setAttribute('aria-expanded', String(!isOpen));
-      });
-    });
-  </script>
+  // Different starting speeds/directions
+  globeA.setVelocity(220, -160);
+  globeB.setVelocity(-180, 200);
+
+  // Collide *with each other*
+  this.physics.add.collider(globeA, globeB);
+
+  // HUD
+  label = this.add.text(16, 16,
+    'Two globes bouncing: walls + each other\nClick anywhere to nudge a random globe.',
+    { fontFamily: 'Arial, Helvetica, sans-serif', fontSize: '16px', color: '#bfe9ff' }
+  );
+
+  // Click to give a little random “nudge” impulse (fun to test angles)
+  this.input.on('pointerdown', (p) => {
+    const target = Math.random() < 0.5 ? globeA : globeB;
+    const angle = Phaser.Math.Angle.Between(target.x, target.y, p.worldX, p.worldY);
+    const speed = 240;
+    target.setVelocity(Math.cos(angle) * speed, Math.sin(angle) * speed);
+  });
+
+  // Optional: keep speed stable (avoid tiny numeric drift)
+  this.time.addEvent({
+    delay: 1000,
+    loop: true,
+    callback: () => normalizeSpeed(globeA, 270) || normalizeSpeed(globeB, 270)
+  });
+}
+
+function update() {
+  // Nothing required each frame; Arcade handles collisions + wall bounces.
+}
+
+// Helper to keep total speed near a target (nice for classroom demos)
+function normalizeSpeed(ball, target) {
+  const v = ball.body.velocity;
+  const cur = Math.hypot(v.x, v.y) || 1;
+  const scale = target / cur;
+  if (Math.abs(cur - target) > 1) {
+    ball.setVelocity(v.x * scale, v.y * scale);
+    return true;
+  }
+  return false;
+}
+</script>
 </body>
 </html>
