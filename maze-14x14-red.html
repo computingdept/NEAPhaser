@@ -2,17 +2,20 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Maze 15×15 – Red Player + Shortest Path</title>
+  <title>Maze 15×15 – Red Player + Shortest Path (Fixed Margins)</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <script src="https://cdn.jsdelivr.net/npm/phaser@3.80.0/dist/phaser.js"></script>
   <style>html,body{margin:0;background:#111}</style>
 </head>
 <body>
 <script>
-const COLS=15, ROWS=15, TILE=28;
+const COLS = 15, ROWS = 15, TILE = 28;
 
 new Phaser.Game({
-  type: Phaser.AUTO, width: 900, height: 560, backgroundColor: '#111',
+  type: Phaser.AUTO,
+  width: 900,
+  height: 620,  // <-- slightly taller to show all maze edges
+  backgroundColor: '#111',
   scene: { preload(){}, create, update }
 });
 
@@ -26,16 +29,14 @@ function create(){
   gfxMaze=this.add.graphics();
   gfxPath=this.add.graphics();
 
-  this.add.text(12,10,'WASD / Arrows to move  •  Randomise  •  Show Path',
-    {fontFamily:'Arial Black',fontSize:16,color:'#ddd'});
+  this.add.text(12, 10, 'WASD / Arrows • Randomise • Show Path', {
+    fontFamily:'Arial Black', fontSize:16, color:'#ddd'
+  });
 
-  makeButton(W-250,24,120,34,'Randomise',rebuild);
-  makeButton(W-110,24,120,34,'Show Path',()=>{showPath=!showPath; drawShortestPath();});
-
-  this.input.keyboard.on('keydown-R',rebuild);
+  makeButton(W-250, 28, 120, 34, 'Randomise', rebuild);
+  makeButton(W-110, 28, 120, 34, 'Show Path', ()=>{showPath=!showPath; drawShortestPath();});
+  this.input.keyboard.on('keydown-R', rebuild);
   keys=this.input.keyboard.addKeys({W:'W',A:'A',S:'S',D:'D',UP:'UP',LEFT:'LEFT',DOWN:'DOWN',RIGHT:'RIGHT'});
-  // Handy: press 0 to re-center player at spawn (if you ever lose him)
-  this.input.keyboard.on('keydown-0', ()=>placePlayerAtSpawn());
 
   rebuild();
 }
@@ -56,129 +57,108 @@ function tryMove(dx,dy){
     moving=true; pg.x=nx; pg.y=ny;
     const p=toPx(nx,ny);
     scene.tweens.add({
-      targets:player, x:p.x, y:p.y, duration:110, ease:'Sine.easeOut',
-      onComplete:()=>{ moving=false; if(showPath) drawShortestPath(); }
+      targets:player,x:p.x,y:p.y,duration:110,ease:'Sine.easeOut',
+      onComplete:()=>{moving=false;if(showPath)drawShortestPath();}
     });
   }
 }
 
 function rebuild(){
-  const g=generateMaze(COLS,ROWS);
-  grid=g.grid; startGate=g.start; endGate=g.end;
+  const gen=generateMaze(COLS,ROWS);
+  grid=gen.grid; startGate=gen.start; endGate=gen.end;
   gw=grid[0].length; gh=grid.length;
-  offX=Math.floor((W-gw*TILE)/2); offY=Math.floor((H-gh*TILE)/2);
+
+  // ✅ Leave a 20px top & bottom padding
+  const totalMazeH = gh*TILE;
+  const verticalMargin = 20;
+  offX = Math.floor((W - gw*TILE)/2);
+  offY = Math.floor((H - totalMazeH)/2 + verticalMargin/2);
 
   drawMaze();
-  placePlayerAtSpawn();
-  showPath=false; gfxPath.clear();
+  placePlayer();
+  gfxPath.clear(); showPath=false;
 }
 
-function placePlayerAtSpawn(){
-  // spawn just inside bottom gate
-  pg={x:endGate.x, y:gh-2};
+function placePlayer(){
+  pg={x:endGate.x,y:gh-2};
   const p=toPx(pg.x,pg.y);
-
   if(!player){
-    // **Rectangle player** (no texture), giant red with white outline, very high depth
-    player = scene.add.rectangle(p.x,p.y, TILE-8, TILE-8, 0xff2b2b)
+    player = scene.add.rectangle(p.x,p.y,TILE-8,TILE-8,0xff2b2b)
       .setStrokeStyle(2,0xffffff).setDepth(1000);
-  } else {
-    player.setPosition(p.x,p.y);
-  }
-  // Flash so you spot it instantly
-  scene.tweens.add({targets:player, alpha:{from:0,to:1}, duration:200});
+  } else player.setPosition(p.x,p.y);
+  scene.tweens.add({targets:player,alpha:{from:0,to:1},duration:200});
 }
 
 function drawMaze(){
   gfxMaze.clear();
-  // Floor
-  gfxMaze.fillStyle(0x181818,1);
-  gfxMaze.fillRect(offX,offY,gw*TILE,gh*TILE);
-  // Walls (white)
   gfxMaze.fillStyle(0xffffff,1);
-  for(let y=0;y<gh;y++)for(let x=0;x<gw;x++) if(grid[y][x]===1)
-    gfxMaze.fillRect(offX+x*TILE,offY+y*TILE,TILE,TILE);
-  // Corridors (dark)
+  gfxMaze.fillRect(offX,offY,gw*TILE,gh*TILE);
   gfxMaze.fillStyle(0x2b2118,1);
-  for(let y=0;y<gh;y++)for(let x=0;x<gw;x++) if(grid[y][x]===0)
+  for(let y=0;y<gh;y++)for(let x=0;x<gw;x++)if(grid[y][x]===0)
     gfxMaze.fillRect(offX+x*TILE,offY+y*TILE,TILE,TILE);
-  // Gates (blue)
   gfxMaze.fillStyle(0x24b2ff,1);
-  gfxMaze.fillRect(offX+startGate.x*TILE, offY+startGate.y*TILE, TILE, TILE);
-  gfxMaze.fillRect(offX+endGate.x*TILE,   offY+endGate.y*TILE,   TILE, TILE);
-  // Border
+  gfxMaze.fillRect(offX+startGate.x*TILE,offY+startGate.y*TILE,TILE,TILE);
+  gfxMaze.fillRect(offX+endGate.x*TILE,offY+endGate.y*TILE,TILE,TILE);
   gfxMaze.lineStyle(4,0xffffff,1);
   gfxMaze.strokeRect(offX,offY,gw*TILE,gh*TILE);
 }
 
 function drawShortestPath(){
-  gfxPath.clear();
-  if(!showPath) return;
-
-  const start={x:pg.x,y:pg.y};
-  const goal ={x:startGate.x,y:1}; // just inside top gate
+  gfxPath.clear(); if(!showPath) return;
+  const start={x:pg.x,y:pg.y}, goal={x:startGate.x,y:1};
   const q=[start], prev=new Map(), key=(x,y)=>`${x},${y}`;
-  prev.set(key(start.x,start.y), null);
-
+  prev.set(key(start.x,start.y),null);
   while(q.length){
     const cur=q.shift();
-    if(cur.x===goal.x && cur.y===goal.y) break;
-    for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){
-      const nx=cur.x+dx, ny=cur.y+dy;
+    if(cur.x===goal.x&&cur.y===goal.y)break;
+    for(const[dx,dy]of[[1,0],[-1,0],[0,1],[0,-1]]){
+      const nx=cur.x+dx,ny=cur.y+dy;
       if(ny>=0&&ny<gh&&nx>=0&&nx<gw&&grid[ny][nx]===0){
         const k=key(nx,ny);
-        if(!prev.has(k)){ prev.set(k,cur); q.push({x:nx,y:ny}); }
+        if(!prev.has(k)){prev.set(k,cur);q.push({x:nx,y:ny});}
       }
     }
   }
-  const path=[]; let ck=key(goal.x,goal.y);
-  if(!prev.has(ck)) return;
-  while(ck){ const [x,y]=ck.split(',').map(Number); path.push({x,y}); const p=prev.get(ck); ck=p?key(p.x,p.y):null; }
-
+  const path=[];let ck=key(goal.x,goal.y);
+  if(!prev.has(ck))return;
+  while(ck){const[x,y]=ck.split(',').map(Number);path.push({x,y});const p=prev.get(ck);ck=p?key(p.x,p.y):null;}
   gfxPath.fillStyle(0xffe666,1);
-  path.forEach(c=>{ const p=toPx(c.x,c.y); gfxPath.fillCircle(p.x,p.y,4); });
+  path.forEach(c=>{const p=toPx(c.x,c.y);gfxPath.fillCircle(p.x,p.y,4);});
 }
 
-/* --------- Maze generation --------- */
+/* ---------- Maze generation ---------- */
 function generateMaze(cols,rows){
   const GW=2*cols+1, GH=2*rows+1;
   const g=Array.from({length:GH},()=>Array(GW).fill(1));
   const vis=Array.from({length:rows},()=>Array(cols).fill(false));
-
   const st={x:Phaser.Math.Between(0,cols-1),y:Phaser.Math.Between(0,rows-1)};
   const stack=[st]; vis[st.y][st.x]=true; g[st.y*2+1][st.x*2+1]=0;
-
   while(stack.length){
     const c=stack[stack.length-1], nb=[];
-    if(c.y>0      && !vis[c.y-1][c.x]) nb.push({x:c.x,y:c.y-1});
-    if(c.y<rows-1 && !vis[c.y+1][c.x]) nb.push({x:c.x,y:c.y+1});
-    if(c.x>0      && !vis[c.y][c.x-1]) nb.push({x:c.x-1,y:c.y});
-    if(c.x<cols-1 && !vis[c.y][c.x+1]) nb.push({x:c.x+1,y:c.y});
+    if(c.y>0&&!vis[c.y-1][c.x])nb.push({x:c.x,y:c.y-1});
+    if(c.y<rows-1&&!vis[c.y+1][c.x])nb.push({x:c.x,y:c.y+1});
+    if(c.x>0&&!vis[c.y][c.x-1])nb.push({x:c.x-1,y:c.y});
+    if(c.x<cols-1&&!vis[c.y][c.x+1])nb.push({x:c.x+1,y:c.y});
     if(nb.length){
       const n=Phaser.Utils.Array.GetRandom(nb);
       g[(c.y*2+1+n.y*2+1)/2][(c.x*2+1+n.x*2+1)/2]=0;
       g[n.y*2+1][n.x*2+1]=0; vis[n.y][n.x]=true; stack.push(n);
     } else stack.pop();
   }
-
-  // seal edges, open exactly one top + one bottom aligned to corridors
-  for(let x=0;x<GW;x++){ g[0][x]=1; g[GH-1][x]=1; }
-  for(let y=0;y<GH;y++){ g[y][0]=1; g[y][GW-1]=1; }
+  for(let x=0;x<GW;x++){g[0][x]=1;g[GH-1][x]=1;}
+  for(let y=0;y<GH;y++){g[y][0]=1;g[y][GW-1]=1;}
   const tops=[],bots=[];
-  for(let x=1;x<GW-1;x+=2){ if(g[1][x]===0) tops.push(x); if(g[GH-2][x]===0) bots.push(x); }
+  for(let x=1;x<GW-1;x+=2){if(g[1][x]===0)tops.push(x);if(g[GH-2][x]===0)bots.push(x);}
   const topX=Phaser.Utils.Array.GetRandom(tops)??1;
   const botX=Phaser.Utils.Array.GetRandom(bots)??GW-2;
   g[0][topX]=0; g[GH-1][botX]=0;
-
   return {grid:g,start:{x:topX,y:0},end:{x:botX,y:GH-1}};
 }
 
-/* --------- Utils & UI --------- */
-function toPx(gx,gy){ return {x:offX+gx*TILE+TILE/2, y:offY+gy*TILE+TILE/2}; }
-
+/* ---------- Helpers ---------- */
+function toPx(gx,gy){return{x:offX+gx*TILE+TILE/2,y:offY+gy*TILE+TILE/2};}
 function makeButton(x,y,w,h,label,fn){
-  const g=scene.add.graphics({x:x-w/2,y:y-h/2});
-  drawBtn(g,w,h,false);
+  const g=scene.add.graphics({x:x-w/2,y:y-h/2}); drawBtn(g,w,h,false);
   scene.add.text(x,y,label,{fontFamily:'Arial',fontSize:16,color:'#fff'}).setOrigin(0.5);
   scene.add.zone(x,y,w,h).setInteractive({useHandCursor:true})
     .on('pointerover',()=>drawBtn(g,w,h,true))
