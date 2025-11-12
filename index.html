@@ -5,83 +5,127 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Phaser Demo Collection – RHSC Computing</title>
   <style>
-    body {
-      font-family: 'Segoe UI', Arial, sans-serif;
-      background: #f6fff5;
-      color: #003a2b;
-      text-align: center;
-      padding: 56px 20px;
+    :root{
+      --green:#006e51; --green2:#009a70; --card:#fffef4; --line:#e6d971;
+      --bg:#f6fff5; --text:#003a2b;
     }
-    h1 { color: #006e51; margin-bottom: 0.4em; }
-    h2.section {
-      color: #006e51;
-      font-size: 1.4em;
-      margin-top: 1.6em;
-      margin-bottom: 0.4em;
-      border-bottom: 2px solid #e6d971;
-      display: inline-block;
-      padding-bottom: 4px;
+    body{
+      font-family:'Segoe UI', Arial, sans-serif; background:var(--bg);
+      color:var(--text); text-align:center; padding:56px 20px;
     }
-    .grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-      gap: 1.1em;
-      max-width: 980px;
-      margin: 0 auto;
+    h1{ color:var(--green); margin-bottom:.4em; }
+
+    .section-toggle{
+      display:inline-flex; align-items:center; gap:.6rem;
+      border:2px solid var(--line); border-radius:12px; padding:.35rem .8rem;
+      background:#fff; color:var(--green); font-size:1.05rem;
+      font-weight:600; cursor:pointer; user-select:none;
     }
-    .card {
-      background: #fffef4;
-      border: 2px solid #e6d971;
-      border-radius: 16px;
-      padding: 18px;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    .section-toggle:hover{ background:#fffbdf; }
+    .chev{ transition: transform .2s ease; }
+    .section[aria-expanded="true"] .chev{ transform: rotate(90deg); }
+
+    .section-body{
+      max-width:980px; margin:10px auto 0;
+      overflow:hidden; transition:max-height .25s ease, opacity .2s ease;
     }
-    .card h3 { color: #006e51; font-size: 1.1rem; margin: 0 0 10px; }
-    .button {
-      display: inline-block;
-      background: #006e51;
-      color: #fff;
-      text-decoration: none;
-      padding: 9px 16px;
-      border-radius: 10px;
-      transition: background .15s;
+    .section[aria-expanded="false"] .section-body{ max-height:0; opacity:0; }
+    .section[aria-expanded="true"]  .section-body{ max-height:1000px; opacity:1; }
+
+    .grid{
+      display:grid; grid-template-columns: repeat(auto-fit, minmax(260px,1fr));
+      gap:1.1em; margin:0 auto 4px;
     }
-    .button:hover { background: #009a70; }
-    footer { margin-top: 28px; font-size: .9rem; color: #667; }
+    .card{
+      background:var(--card); border:2px solid var(--line);
+      border-radius:16px; padding:18px; box-shadow:0 4px 10px rgba(0,0,0,.05);
+    }
+    .card h3{ color:var(--green); font-size:1.05rem; margin:0 0 10px; }
+    .button{
+      display:inline-block; background:var(--green); color:#fff; text-decoration:none;
+      padding:9px 16px; border-radius:10px; transition:background .15s;
+    }
+    .button:hover{ background:var(--green2); }
+    footer{ margin-top:28px; font-size:.9rem; color:#667; }
   </style>
 </head>
 <body>
   <h1>🎮 RHSC Computing – Phaser Demos</h1>
 
   <!-- MOVEMENT & PHYSICS -->
-  <h2 class="section">🏃 Movement & Physics</h2>
-  <div class="grid">
-    <div class="card"><h3>No Gravity</h3><a class="button" href="nogravity.html">Open</a></div>
-    <div class="card"><h3>Gravity</h3><a class="button" href="gravity.html">Open</a></div>
-    <div class="card"><h3>Side-Scroller</h3><a class="button" href="sidescroller.html">Open</a></div>
-    <div class="card"><h3>Character Movement</h3><a class="button" href="character-movement.html">Open</a></div>
-    <div class="card"><h3>Solid Collision (No Gravity)</h3><a class="button" href="solid-collision.html">Open</a></div>
-    <div class="card"><h3>Solid Collision + Gravity</h3><a class="button" href="solid-gravity.html">Open</a></div>
-    <div class="card"><h3>Door with Hinge (Matter)</h3><a class="button" href="door-hinge.html">Open</a></div>
-  </div>
+  <section class="section" aria-expanded="true">
+    <button class="section-toggle" aria-controls="sec-move" aria-expanded="true">
+      <span class="chev">▶</span> 🏃 Movement & Physics
+    </button>
+    <div id="sec-move" class="section-body">
+      <div class="grid">
+        <div class="card"><h3>No Gravity</h3><a class="button" href="nogravity.html">Open</a></div>
+        <div class="card"><h3>Gravity</h3><a class="button" href="gravity.html">Open</a></div>
+        <div class="card"><h3>Side-Scroller</h3><a class="button" href="sidescroller.html">Open</a></div>
+        <div class="card"><h3>Character Movement</h3><a class="button" href="character-movement.html">Open</a></div>
+        <div class="card"><h3>Solid Collision (No Gravity)</h3><a class="button" href="solid-collision.html">Open</a></div>
+        <div class="card"><h3>Solid Collision + Gravity</h3><a class="button" href="solid-gravity.html">Open</a></div>
+        <div class="card"><h3>Door with Hinge (Matter)</h3><a class="button" href="door-hinge.html">Open</a></div>
+        <div class="card"><h3>Bounce Balls</h3><a class="button" href="bounceballs.html">Open</a></div>
+      </div>
+    </div>
+  </section>
 
   <!-- INTERACTION & COLLISION -->
-  <h2 class="section">🧱 Interaction & Collision</h2>
-  <div class="grid">
-    <div class="card"><h3>Collision</h3><a class="button" href="collision.html">Open</a></div>
-    <div class="card"><h3>Collision + Score</h3><a class="button" href="collision-score.html">Open</a></div>
-    <div class="card"><h3>Planet Break (Matter)</h3><a class="button" href="planet-break.html">Open</a></div>
-    <div class="card"><h3>Scratch Catch</h3><a class="button" href="scratchcatch.html">Open</a></div>
-    <div class="card"><h3>Teleport</h3><a class="button" href="teleport.html">Open</a></div>
-  </div>
+  <section class="section" aria-expanded="true">
+    <button class="section-toggle" aria-controls="sec-interact" aria-expanded="true">
+      <span class="chev">▶</span> 🧱 Interaction & Collision
+    </button>
+    <div id="sec-interact" class="section-body">
+      <div class="grid">
+        <div class="card"><h3>Collision</h3><a class="button" href="collision.html">Open</a></div>
+        <div class="card"><h3>Collision + Score</h3><a class="button" href="collision-score.html">Open</a></div>
+        <div class="card"><h3>Scratch Catch</h3><a class="button" href="scratchcatch.html">Open</a></div>
+        <div class="card"><h3>Planet Break (Matter)</h3><a class="button" href="planet-break.html">Open</a></div>
+        <div class="card"><h3>Teleport</h3><a class="button" href="teleport.html">Open</a></div>
+      </div>
+    </div>
+  </section>
 
   <!-- CREATIVITY & UI -->
-  <h2 class="section">🪄 Creativity & UI</h2>
-  <div class="grid">
-    <div class="card"><h3>Mouse Follow</h3><a class="button" href="mouse-follow-shelf.html">Open</a></div>
-    <div class="card"><h3>Mouse Follow – Shelf List</h3><a class="button" href="mouse-follow-shelf-list.html">Open</a></div>
-    <div class="card"><h3>Mouse Follow – Placed Items</h3><a class="button" href="mouse-follow-shelf-placed.html">Open</a></div>
-  </div>
+  <section class="section" aria-expanded="true">
+    <button class="section-toggle" aria-controls="sec-ui" aria-expanded="true">
+      <span class="chev">▶</span> 🪄 Creativity & UI
+    </button>
+    <div id="sec-ui" class="section-body">
+      <div class="grid">
+        <div class="card"><h3>Mouse Follow</h3><a class="button" href="mouse-follow-shelf.html">Open</a></div>
+        <div class="card"><h3>Mouse Follow – Shelf List</h3><a class="button" href="mouse-follow-shelf-list.html">Open</a></div>
+        <div class="card"><h3>Mouse Follow – Placed Items</h3><a class="button" href="mouse-follow-shelf-placed.html">Open</a></div>
+      </div>
+    </div>
+  </section>
 
   <!-- MENUS & SYSTEMS -->
-  <h2 class="section">
+  <section class="section" aria-expanded="true">
+    <button class="section-toggle" aria-controls="sec-systems" aria-expanded="true">
+      <span class="chev">▶</span> 🧩 Menus & Systems
+    </button>
+    <div id="sec-systems" class="section-body">
+      <div class="grid">
+        <div class="card"><h3>Main Menu + Stock (Overlay)</h3><a class="button" href="main-with-stock-overlay.html">Open</a></div>
+        <div class="card"><h3>Main Menu + Stock (Inline)</h3><a class="button" href="main-inline-stock.html">Open</a></div>
+      </div>
+    </div>
+  </section>
+
+  <footer>© 2025 RHSC Computing – Phaser Examples</footer>
+
+  <script>
+    // Collapsible sections
+    document.querySelectorAll('.section').forEach(section => {
+      const btn = section.querySelector('.section-toggle');
+      btn.addEventListener('click', () => {
+        const isOpen = section.getAttribute('aria-expanded') === 'true';
+        section.setAttribute('aria-expanded', String(!isOpen));
+        btn.setAttribute('aria-expanded', String(!isOpen));
+      });
+    });
+  </script>
+</body>
+</html>
