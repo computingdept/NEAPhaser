@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Phaser – Two Globes Bounce</title>
+  <title>Phaser – Add-a-Globe Simulator</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <script src="https://cdn.jsdelivr.net/npm/phaser@3.80.0/dist/phaser.js"></script>
 </head>
@@ -12,92 +12,103 @@ const config = {
   type: Phaser.AUTO,
   width: 900,
   height: 560,
-  backgroundColor: '#0b1b2b',
-  physics: {
-    default: 'arcade',
-    arcade: {
-      gravity: { y: 0 },
-      debug: false
-    }
-  },
+  backgroundColor: '#061526',
+  physics: { default: 'arcade', arcade: { gravity:{y:0}, debug:false } },
   scene: { preload, create, update }
 };
 new Phaser.Game(config);
 
-let globeA, globeB, label;
+let globes, label, addBtn, sceneRef;
 
 function preload() {
-  // Create a glossy globe texture (64x64) so we don’t rely on external images.
+  // Make a generic globe texture (we’ll tint copies later)
   const g = this.add.graphics();
-  // base
-  g.fillStyle(0x66c2ff, 1).fillCircle(32, 32, 30);
-  // highlight
-  g.fillStyle(0xffffff, 0.35).fillCircle(22, 22, 12);
-  // rim
-  g.lineStyle(3, 0x3aa0e0, 1).strokeCircle(32, 32, 30);
+  g.fillStyle(0xffffff, 1).fillCircle(32, 32, 30);
+  g.lineStyle(3, 0xdddddd, 1).strokeCircle(32, 32, 30);
   g.generateTexture('globe', 64, 64);
   g.destroy();
 }
 
 function create() {
-  const W = this.scale.width, H = this.scale.height;
+  const scene = this;
+  sceneRef = scene;
+  const W = scene.scale.width;
+  const H = scene.scale.height;
 
-  // Add two physics images (balls)
-  globeA = this.physics.add.image(W * 0.33, H * 0.45, 'globe');
-  globeB = this.physics.add.image(W * 0.67, H * 0.55, 'globe');
+  // Group for all balls
+  globes = scene.physics.add.group();
 
-  // Make them round and elastic
-  [globeA, globeB].forEach(ball => {
-    // Set a circular body that matches the 64x64 texture nicely
-    ball.body.setCircle(30);      // radius
-    ball.body.setOffset(2, 2);    // center circle inside the 64x64 image
-    ball.setBounce(1, 1);         // perfectly elastic collisions
-    ball.setCollideWorldBounds(true);
+  // Make a couple at start
+  addGlobe(scene, W*0.4, H*0.5);
+  addGlobe(scene, W*0.6, H*0.4);
+
+  // Collider between all in the group
+  scene.physics.add.collider(globes, globes);
+
+  // UI text
+  label = scene.add.text(16, 16, '🪐 Click "+ Add Globe" to add more', {
+    fontFamily:'Arial', fontSize:'18px', color:'#bfe9ff'
   });
 
-  // Different starting speeds/directions
-  globeA.setVelocity(220, -160);
-  globeB.setVelocity(-180, 200);
+  // Simple button (HTML-style text button inside Phaser)
+  const btnW=130, btnH=36, x=W-90, y=30;
+  const g = scene.add.graphics({x:x-btnW/2, y:y-btnH/2});
+  drawButton(g, btnW, btnH, false);
+  addBtn = scene.add.text(x, y, '+ Add Globe', {
+      fontFamily:'Arial', fontSize:'18px', color:'#ffffff'
+    }).setOrigin(0.5);
 
-  // Collide *with each other*
-  this.physics.add.collider(globeA, globeB);
+  const hit = scene.add.zone(x, y, btnW, btnH)
+    .setInteractive({ useHandCursor:true })
+    .on('pointerover', ()=>drawButton(g, btnW, btnH, true))
+    .on('pointerout', ()=>drawButton(g, btnW, btnH, false))
+    .on('pointerdown', ()=>addGlobe(scene));
 
-  // HUD
-  label = this.add.text(16, 16,
-    'Two globes bouncing: walls + each other\nClick anywhere to nudge a random globe.',
-    { fontFamily: 'Arial, Helvetica, sans-serif', fontSize: '16px', color: '#bfe9ff' }
-  );
-
-  // Click to give a little random “nudge” impulse (fun to test angles)
-  this.input.on('pointerdown', (p) => {
-    const target = Math.random() < 0.5 ? globeA : globeB;
+  // Click anywhere else to nudge a random globe
+  scene.input.on('pointerdown', (p)=>{
+    if (hit.getBounds().contains(p.worldX, p.worldY)) return; // ignore button
+    const balls = globes.getChildren();
+    if(!balls.length) return;
+    const target = Phaser.Utils.Array.GetRandom(balls);
     const angle = Phaser.Math.Angle.Between(target.x, target.y, p.worldX, p.worldY);
     const speed = 240;
-    target.setVelocity(Math.cos(angle) * speed, Math.sin(angle) * speed);
-  });
-
-  // Optional: keep speed stable (avoid tiny numeric drift)
-  this.time.addEvent({
-    delay: 1000,
-    loop: true,
-    callback: () => normalizeSpeed(globeA, 270) || normalizeSpeed(globeB, 270)
+    target.setVelocity(Math.cos(angle)*speed, Math.sin(angle)*speed);
   });
 }
 
 function update() {
-  // Nothing required each frame; Arcade handles collisions + wall bounces.
+  // Nothing needed per frame; physics does the work
 }
 
-// Helper to keep total speed near a target (nice for classroom demos)
-function normalizeSpeed(ball, target) {
-  const v = ball.body.velocity;
-  const cur = Math.hypot(v.x, v.y) || 1;
-  const scale = target / cur;
-  if (Math.abs(cur - target) > 1) {
-    ball.setVelocity(v.x * scale, v.y * scale);
-    return true;
-  }
-  return false;
+/* ---------- helpers ---------- */
+function drawButton(g,w,h,hover){
+  g.clear();
+  g.fillStyle(hover?0x009a70:0x006e51,1);
+  g.fillRoundedRect(0,0,w,h,8);
+  g.lineStyle(2,0xe6d971,1);
+  g.strokeRoundedRect(0,0,w,h,8);
+}
+
+function addGlobe(scene, x, y){
+  const W=scene.scale.width, H=scene.scale.height;
+  const gx = x || Phaser.Math.Between(60, W-60);
+  const gy = y || Phaser.Math.Between(60, H-60);
+  const ball = scene.physics.add.image(gx, gy, 'globe');
+
+  // Give each globe its own random colour tint
+  const hue = Phaser.Math.Between(0,360);
+  ball.setTint(Phaser.Display.Color.HSVToRGB(hue/360,0.6,1).color);
+
+  ball.body.setCircle(30);
+  ball.body.setOffset(2,2);
+  ball.setBounce(1,1).setCollideWorldBounds(true);
+
+  const angle = Phaser.Math.FloatBetween(0, Math.PI*2);
+  const speed = Phaser.Math.Between(150,250);
+  ball.setVelocity(Math.cos(angle)*speed, Math.sin(angle)*speed);
+
+  globes.add(ball);
+  label.setText('🪐 Globes: '+globes.getLength());
 }
 </script>
 </body>
